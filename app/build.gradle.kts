@@ -4,6 +4,15 @@ plugins {
 }
 
 android {
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a") // Build only for arm64
+            isUniversalApk = false // Set to true if you also want a universal APK
+        }
+    }
+
     namespace = "org.invokevirtual.launcher"
     compileSdk {
         version = release(37) {
