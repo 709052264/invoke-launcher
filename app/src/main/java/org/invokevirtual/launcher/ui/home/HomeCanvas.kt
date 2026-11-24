@@ -320,6 +320,17 @@ fun HomeCanvas(
     var scrollConsumedInGesture by remember { mutableFloatStateOf(0f) }
     var drawerTriggeredInGesture by remember { mutableStateOf(false) }
 
+    val openStatusBar = remember(context) {
+        {
+            runCatching {
+                val service = context.getSystemService("statusbar")
+                val statusBarManager = Class.forName("android.app.StatusBarManager")
+                val expand = statusBarManager.getMethod("expandNotificationsPanel")
+                expand.invoke(service)
+            }
+        }
+    }
+
     val drawerSwipeNestedScroll = remember(isEditMode, invokeSheetOpen, swipeThresholdPx) {
         object : NestedScrollConnection {
             override fun onPostScroll(
@@ -334,10 +345,15 @@ fun HomeCanvas(
                     scrollConsumedInGesture += abs(consumed.y)
                     if (scrollConsumedInGesture < 8f && abs(available.y) > 0f) {
                         overscrollDeltaY += available.y
-                        if (overscrollDeltaY > swipeThresholdPx || overscrollDeltaY < -swipeThresholdPx) {
+                        if (overscrollDeltaY < -swipeThresholdPx) {
                             drawerTriggeredInGesture = true
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             openInvokeSheet(false)
+                            return available
+                        } else if (overscrollDeltaY > swipeThresholdPx) {
+                            drawerTriggeredInGesture = true
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            openStatusBar()
                             return available
                         }
                     }
@@ -351,10 +367,15 @@ fun HomeCanvas(
                 ) {
                     val fastSwipeDown = !gridState.canScrollBackward && available.y > 900f
                     val fastSwipeUp = !gridState.canScrollForward && available.y < -900f
-                    if (fastSwipeDown || fastSwipeUp) {
+                    if (fastSwipeUp) {
                         drawerTriggeredInGesture = true
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         openInvokeSheet(false)
+                        return available
+                    } else if (fastSwipeDown) {
+                        drawerTriggeredInGesture = true
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        openStatusBar()
                         return available
                     }
                 }
@@ -379,8 +400,12 @@ fun HomeCanvas(
                 detectVerticalDragGestures(
                     onDragStart = { dragAccumulator = 0f },
                     onDragEnd = {
-                        if (!isEditMode && !invokeSheetOpen && abs(dragAccumulator) > swipeThresholdPx) {
-                            openInvokeSheet(false)
+                        if (!isEditMode && !invokeSheetOpen) {
+                            if (dragAccumulator < -swipeThresholdPx) {
+                                openInvokeSheet(false)
+                            } else if (dragAccumulator > swipeThresholdPx) {
+                                openStatusBar()
+                            }
                         }
                         dragAccumulator = 0f
                     },
