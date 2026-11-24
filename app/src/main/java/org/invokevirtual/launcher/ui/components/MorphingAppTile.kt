@@ -375,6 +375,17 @@ fun TileIconGlyph(
     }
 }
 
+// 👇 ADD YOUR FUNCTION HERE 👇
+private fun getIconShape(style: IconStyle): Shape {
+    return when (style) {
+        IconStyle.SYSTEM -> // Use the system's default adaptive icon mask
+        IconStyle.CIRCLE -> CircleShape
+        IconStyle.SQUIRCLE -> RoundedCornerShape(30)
+        IconStyle.ROUNDED_SQUARE -> RoundedCornerShape(12)
+        else -> CircleShape // Fallback
+    }
+}
+
 @Composable
 private fun BentoTone.containerColor(): Color = when (this) {
     BentoTone.PRIMARY -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f)
