@@ -363,21 +363,23 @@ fun TileIconGlyph(
 
         // 2. 只有 THEMED_MONOCHROME 走单色渲染
         iconStyle == IconStyle.THEMED_MONOCHROME -> {
-            Icon(
-                bitmap = iconAsset.monochrome.asImageBitmap(),
-                contentDescription = null,
-                tint = tint,
-                modifier = modifier.clip(getIconShape(iconStyle)),
-            )
-        }
-
-        // 3. 其余（FULL_COLOR + 所有形状）都走全彩渲染
-        else -> {
-            Image(
-                bitmap = iconAsset.fullColor,
-                contentDescription = null,
-                modifier = modifier.clip(getIconShape(iconStyle)),
-            )
+            val monoBitmap = iconAsset.monochrome
+            if (monoBitmap != null) {
+                Icon(
+                    bitmap = monoBitmap,          // ✅ 直接使用，不要 asImageBitmap()
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = modifier.clip(getIconShape(iconStyle)),
+                )
+            } else {
+                // monochrome 为 null 时回退到 fallback glyph
+                Icon(
+                    imageVector = fallbackGlyph,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = modifier,
+                )
+            }
         }
     }
 }
