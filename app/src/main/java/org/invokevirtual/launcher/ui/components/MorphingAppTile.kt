@@ -350,28 +350,32 @@ fun TileIconGlyph(
     modifier: Modifier = Modifier,
 ) {
     when {
-        iconAsset != null && iconStyle == IconStyle.THEMED_MONOCHROME && iconAsset.monochrome != null -> {
-            Image(
-                bitmap = iconAsset.monochrome,
-                contentDescription = null,
-                colorFilter = ColorFilter.tint(tint),
-                modifier = modifier,
-            )
-        }
-        // Inside TileIconGlyph
-        iconAsset != null -> {
-            Image(
-                bitmap = iconAsset.fullColor,
-                contentDescription = null,
-                modifier = modifier.clip(getIconShape(iconStyle)), // <-- use the helper
-            )
-        }
-        else -> {
+        // 1. 没有图标资源时，回退到单色 glyph
+        iconAsset == null -> {
             Icon(
                 imageVector = fallbackGlyph,
                 contentDescription = null,
                 tint = tint,
                 modifier = modifier,
+            )
+        }
+
+        // 2. 只有 THEMED_MONOCHROME 走单色渲染
+        iconStyle == IconStyle.THEMED_MONOCHROME -> {
+            Icon(
+                bitmap = iconAsset.monochrome.asImageBitmap(),
+                contentDescription = null,
+                tint = tint,
+                modifier = modifier.clip(getIconShape(iconStyle)),
+            )
+        }
+
+        // 3. 其余（FULL_COLOR + 所有形状）都走全彩渲染
+        else -> {
+            Image(
+                bitmap = iconAsset.fullColor,
+                contentDescription = null,
+                modifier = modifier.clip(getIconShape(iconStyle)),
             )
         }
     }
