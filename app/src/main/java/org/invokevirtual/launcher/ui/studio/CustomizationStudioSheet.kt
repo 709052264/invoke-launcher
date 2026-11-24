@@ -595,6 +595,27 @@ internal fun CustomizationStudioContent(
                 }
             }
 
+            item(key = "icon_style") {
+                StudioSection(title = "Icon Style") {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        IconStyle.entries.forEach { style ->
+                            FilterChip(
+                                selected = settings.iconStyle == style,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    actions.onSelectIconStyle(style)
+                                },
+                                label = { Text(style.name.lowercase().replaceFirstChar { it.titlecase() }) },
+                            )
+                        }
+                    }
+                }
+            }
+
             item(key = "clock_header") {
                 StudioSection(title = "Clock & Header") {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
