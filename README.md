@@ -69,21 +69,9 @@
 
 - **Bento Canvas** &mdash; Mix apps, widgets, quick people, and shortcuts into flexible 1x1, 2x1, or 2x2 blocks.
 - **13 Morphing Shapes** &mdash; Squircles, leaves, arches, pills, clovers, and gems with smooth touch morphing.
-- **Universal Search** &mdash; Search apps by name or initials (yt for YouTube), run math in the search bar, or dial contacts with natural verbs (call Mom).
-- **Workspace Modes** &mdash; Everyday, Deep Focus, and true-black Night OLED (#000000).
+- **Universal Search** &mdash; Search apps by name or initials (yt for YouTube), run math in the search bar, or dial contacts with natural verbs.
+- **Workspace Modes** &mdash; Everyday, Deep Focus, and true-black Night OLED.
 - **Customization Studio** &mdash; Dynamic wallpaper colors, 4 curated palettes, 2D color picker, clock styles, font pairings, and drawer transparency.
-
----
-
-## Gestures
-
-| Gesture | Action |
-| :--- | :--- |
-| **Swipe Up** | Opens App Drawer &amp; Search |
-| **Swipe Down** | Opens Status Bar / Notifications |
-| **Tap Bottom-Right Button** | Opens Mode Menu (Edit, Widgets, Studio, Modes) |
-| **Long-Press Tile** | Shortcuts, resize, shape, and tile settings |
-| **Scrub Right Edge** | Alphabet index jump in drawer |
 
 ---
 
