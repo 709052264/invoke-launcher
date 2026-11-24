@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Invoke</string>
+    <string name="invoke_search_hint">Invoke</string>
+    <string name="cd_search_invoke">Open Invoke search and apps</string>
+    <string name="cd_workspace_modes">Switch workspace mode</string>
+    <string name="cd_close_menu">Close mode menu</string>
+    <string name="mode_everyday">Everyday</string>
+    <string name="mode_deep_focus">Deep Focus</string>
+    <string name="mode_night_amoled">Night OLED</string>
+</resources>

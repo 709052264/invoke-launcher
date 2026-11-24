@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 216 216" width="216" height="216" role="img" aria-label="Invoke Launcher Logo">
+  <rect x="8" y="8" width="200" height="200" rx="48" fill="#3B58E0" />
+  <g transform="scale(2)">
+    <path
+      d="M28,39.5 A11.5,11.5 0 0,1 51,39.5 L51,68.5 A11.5,11.5 0 0,1 28,68.5 Z"
+      fill="#FFFFFF" />
+    <path
+      d="M57,39.5 A11.5,11.5 0 0,1 80,39.5 A11.5,11.5 0 0,1 68.5,51 L61,51 A4,4 0 0,1 57,47 Z"
+      fill="#FFFFFF" />
+    <circle cx="68.5" cy="68.5" r="11.5" fill="#B4CCFF" />
+  </g>
+</svg>

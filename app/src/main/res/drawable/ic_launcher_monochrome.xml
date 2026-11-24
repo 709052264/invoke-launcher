@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Bento Vertical Capsule -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,39.5 A11.5,11.5 0 0,1 51,39.5 L51,68.5 A11.5,11.5 0 0,1 28,68.5 Z" />
+
+    <!-- Bento Expressive Leaf -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M57,39.5 A11.5,11.5 0 0,1 80,39.5 A11.5,11.5 0 0,1 68.5,51 L61,51 A4,4 0 0,1 57,47 Z" />
+
+    <!-- Bento Accent Circle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M68.5,57 A11.5,11.5 0 1,0 68.5,80 A11.5,11.5 0 1,0 68.5,57 Z" />
+</vector>
