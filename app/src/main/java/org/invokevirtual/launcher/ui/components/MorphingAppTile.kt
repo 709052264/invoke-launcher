@@ -358,11 +358,12 @@ fun TileIconGlyph(
                 modifier = modifier,
             )
         }
+        // Inside TileIconGlyph
         iconAsset != null -> {
             Image(
                 bitmap = iconAsset.fullColor,
                 contentDescription = null,
-                modifier = modifier.clip(CircleShape),
+                modifier = modifier.clip(getIconShape(iconStyle)), // <-- use the helper
             )
         }
         else -> {
