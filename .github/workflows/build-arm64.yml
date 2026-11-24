@@ -1,7 +1,11 @@
 name: Build arm64 APK
 
 on:
-  workflow_dispatch:   # 允许在 Actions 页面手动触发
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,16 +27,14 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Build arm64 release APK
-        run: ./gradlew assembleDebug --split-per-abi --stacktrace
+      - name: Build arm64 debug APK
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: List generated APKs (debug)
         if: always()
         run: |
           echo "===== Searching all APK outputs ====="
           find app/build/outputs -type f -name "*.apk" || echo "No APK files found."
-          echo "===== Directory tree under apk/ ====="
-          find app/build/outputs/apk -maxdepth 3 -type d 2>/dev/null || true
 
       - name: Upload arm64 APK
         uses: actions/upload-artifact@v4
