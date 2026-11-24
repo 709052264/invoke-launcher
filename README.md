@@ -88,19 +88,15 @@
 
 ---
 
-## Privacy
-
-- **No Internet Permission**: Zero network requests, analytics, or remote tracking.
-- **No Contact Scraping**: Contacts are selected strictly via Android's system contact picker.
-- **Local-Only**: Runs entirely on-device.
-
----
-
 ## Sponsor
 
 Invoke is independent, open source, and ad-free.
 
-- **Sponsor Invoke**: [http://invokevirtual.org/sponsor/](http://invokevirtual.org/sponsor/)
+<p>
+  <a href="http://invokevirtual.org/sponsor/">
+    <img src="docs/sponsor.svg" alt="Sponsor Invoke" height="48" />
+  </a>
+</p>
 
 ---
 
