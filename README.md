@@ -7,7 +7,6 @@
     <a href="#quick-start">Quick Start</a> &middot;
     <a href="#features">Features</a> &middot;
     <a href="#gestures">Gestures</a> &middot;
-    <a href="#privacy">Privacy</a> &middot;
     <a href="#sponsor">Sponsor</a>
   </p>
 </div>
@@ -100,20 +99,51 @@ Invoke is independent, open source, and ad-free.
 
 ---
 
-## Installing
-
-Download the latest APK from GitHub Releases or build from source:
-
-```bash
-git clone https://github.com/invokevirtual/invoke.git
-cd invoke
-./gradlew :app:assembleDebug
-```
-
-Output: `app/build/outputs/apk/debug/app-debug.apk`. Requires Android 8.0+.
-
----
 
 ## License
 
-Apache License 2.0. See `LICENSE` for details.
+Reef is licensed under the [MIT License](https://opensource.org/licenses/MIT). You are free to use,
+modify, and distribute this
+software.
+
+### 1. Mandatory Attribution
+
+Any derivative work, fork, or redistribution of this software **must** include a prominent link back
+to the original repository.
+This link must be visible to the end-user (e.g., in the "About" or "Settings" screen of the app).
+
+### 2. Trademark & Branding
+
+The name **"Invoke"** and the **official app icon** are trademarks of Pranav Purwar.
+
+* You are **not** permitted to use the name "Invoke" or the original icon for any derivative works or
+  forks.
+* Any redistribution must use a distinct name, a different package ID (e.g., changing
+  `org.invokevirtual.launcher` to something else), and a unique launcher icon.
+* This is to prevent confusion among users and to maintain the integrity of the original project.
+
+```text
+MIT License
+
+Copyright (c) 2023-2026 Pranav Purwar
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
