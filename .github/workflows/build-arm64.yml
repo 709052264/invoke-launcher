@@ -24,7 +24,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build arm64 release APK
-        run: ./gradlew assembleRelease --split-per-abi --stacktrace
+        run: ./gradlew assembleDebug --split-per-abi --stacktrace
 
       - name: List generated APKs (debug)
         if: always()
