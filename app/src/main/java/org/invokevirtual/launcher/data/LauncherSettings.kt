@@ -95,6 +95,11 @@ enum class LauncherFontPreset(
 enum class IconStyle(val label: String) {
     THEMED_MONOCHROME("Monochrome"),
     FULL_COLOR("Full Color"),
+    SYSTEM("System Default"),
+    CIRCLE("Circle"),
+    SQUIRCLE("Squircle"),
+    ROUNDED_SQUARE("Rounded Square"),
+    // ... add more as needed
 }
 
 enum class ExpressivePalette(val displayName: String) {
