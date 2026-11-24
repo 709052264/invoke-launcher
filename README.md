@@ -50,7 +50,7 @@
     </td>
     <td align="center" width="25%">
       <img src="docs/screenshots/night-oled.png" alt="Night OLED Mode" width="220" /><br />
-      <sub><strong>Night OLED</strong><br />Pure #000000 dark canvas</sub>
+      <sub><strong>Night OLED</strong><br />Pure black canvas</sub>
     </td>
   </tr>
 </table>

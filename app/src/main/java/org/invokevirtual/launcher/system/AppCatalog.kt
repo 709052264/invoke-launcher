@@ -188,7 +188,8 @@ class AppCatalog(private val context: Context) {
             val drawable = runCatching { info.getBadgedIcon(density) }.getOrNull()
                 ?: return@withContext null
 
-            val iconSizePx = (48 * context.resources.displayMetrics.density).toInt().coerceIn(96, 192)
+            val iconSizePx =
+                (72 * context.resources.displayMetrics.density).toInt().coerceIn(144, 288)
             val fullColor = drawable.toImageBitmap(iconSizePx)
             val monochrome = extractMonochromeBitmap(drawable, iconSizePx)
 
@@ -220,7 +221,8 @@ class AppCatalog(private val context: Context) {
                 .take(limit)
 
             val density = context.resources.displayMetrics.densityDpi
-            val iconSizePx = (44 * context.resources.displayMetrics.density).toInt().coerceIn(72, 160)
+            val iconSizePx =
+                (64 * context.resources.displayMetrics.density).toInt().coerceIn(128, 256)
 
             shortcuts.map { info ->
                 val icon = runCatching {

@@ -749,6 +749,23 @@ object InvokeIcons {
         }
     }
 
+    val Home: ImageVector by lazy {
+        vectorIcon("InvokeHome") {
+            moveTo(10f, 20f)
+            verticalLineToRelative(-6f)
+            horizontalLineToRelative(4f)
+            verticalLineToRelative(6f)
+            horizontalLineToRelative(5f)
+            verticalLineToRelative(-8f)
+            horizontalLineToRelative(3f)
+            lineTo(12f, 3f)
+            lineTo(2f, 12f)
+            horizontalLineToRelative(3f)
+            verticalLineToRelative(8f)
+            close()
+        }
+    }
+
     private inline fun vectorIcon(
         name: String,
         crossinline pathBuilder: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit,

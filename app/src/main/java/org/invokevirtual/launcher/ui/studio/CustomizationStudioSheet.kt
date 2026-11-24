@@ -13,7 +13,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -75,7 +74,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -98,6 +96,7 @@ import org.invokevirtual.launcher.data.TileTone
 import org.invokevirtual.launcher.system.AppCatalog
 import org.invokevirtual.launcher.system.AppIconAsset
 import org.invokevirtual.launcher.system.AppKey
+import org.invokevirtual.launcher.system.DefaultLauncherHelper
 import org.invokevirtual.launcher.system.InstalledApp
 import org.invokevirtual.launcher.ui.components.InteractiveColorPicker
 import org.invokevirtual.launcher.ui.theme.InvokeIcons
@@ -140,6 +139,7 @@ data class StudioActions(
     val onSetDockApps: (List<AppKey>) -> Unit = {},
     val onSetDrawerTransparency: (Float) -> Unit = {},
     val onToggleShowQuickPeople: (Boolean) -> Unit = {},
+    val onRequestSetDefaultLauncher: () -> Unit = {},
 )
 
 @Composable
@@ -252,6 +252,67 @@ internal fun CustomizationStudioContent(
                     }
 
                     LiveStudioPreviewBanner(settings = settings)
+
+                    if (!DefaultLauncherHelper.isDefaultLauncher(context)) {
+                        Surface(
+                            shape = RoundedCornerShape(22.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(22.dp))
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    actions.onRequestSetDefaultLauncher()
+                                },
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.secondary),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = InvokeIcons.Home,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondary,
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Set as Default Launcher",
+                                        style = MaterialTheme.typography.titleMediumEmphasized,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = "Tap to make Invoke your home app",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(
+                                            alpha = 0.8f
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Icon(
+                                    imageVector = InvokeIcons.OpenInNew,
+                                    contentDescription = "Set as default launcher",
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+                    }
 
                     // Prominent Sponsor Callout Card
                     Surface(
@@ -1039,7 +1100,7 @@ internal fun CustomizationStudioContent(
                         )
                         StudioSwitchRow(
                             title = "True-Black OLED",
-                            subtitle = "Pure #000000 dark canvas & zero tonal elevation",
+                            subtitle = "Pure dark canvas & zero tonal elevation",
                             checked = settings.amoledBlack,
                             shape = RoundedCornerShape(20.dp),
                             onCheckedChange = actions.onToggleAmoledBlack,

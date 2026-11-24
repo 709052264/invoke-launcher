@@ -133,7 +133,7 @@ fun CanvasAppBlockCard(
                 iconAsset = iconAsset,
                 fallbackGlyph = fallbackGlyph,
                 iconStyle = iconStyle,
-                shape = if (isContainerTile) RoundedCornerShape(14.dp) else morphShape,
+                shape = if (isContainerTile) RoundedCornerShape(percent = 26) else morphShape,
                 size = iconSize,
                 monochromeBg = if (isContainerTile) contentColor.copy(alpha = 0.11f) else containerColor,
                 monochromeFg = contentColor,
@@ -200,7 +200,7 @@ fun CanvasShortcutBlockCard(
             val isContainerTile = !isFloating
             ShapedShortcutIcon(
                 bitmap = resolvedShortcut?.icon,
-                shape = if (isContainerTile) RoundedCornerShape(14.dp) else morphShape,
+                shape = if (isContainerTile) RoundedCornerShape(percent = 26) else morphShape,
                 size = iconSize,
                 bgColor = if (isContainerTile) contentColor.copy(alpha = 0.11f) else containerColor,
                 fgColor = contentColor,
@@ -255,7 +255,7 @@ fun CanvasContactBlockCard(
             val isContainerTile = !isFloating
             ShapedContactIcon(
                 initials = block.initials,
-                shape = if (isContainerTile) RoundedCornerShape(14.dp) else morphShape,
+                shape = if (isContainerTile) RoundedCornerShape(percent = 26) else morphShape,
                 size = iconSize,
                 bgColor = if (isContainerTile) contentColor.copy(alpha = 0.11f) else containerColor,
                 fgColor = contentColor,
@@ -408,10 +408,16 @@ private fun CanvasTileScaffold(
                 reducedMotion = reducedMotion,
             )
             val isHorizontal = targetAspect >= 1.25f
-            val targetIconSize = if (isHorizontal) {
-                (targetHeight * 0.46f).coerceIn(36.dp, 68.dp)
-            } else {
-                (min(maxWidth, targetHeight) * 0.36f).coerceIn(38.dp, 60.dp)
+            val isHero = isSquareSize || (effectiveColumns == 2 && targetAspect in 0.82f..1.22f)
+            val targetIconSize = when {
+                isHorizontal -> (targetHeight * 0.46f).coerceIn(36.dp, 68.dp)
+                isHero -> if (showLabel || subLabel != null) {
+                    (min(maxWidth, targetHeight) * 0.44f).coerceIn(68.dp, 84.dp)
+                } else {
+                    (min(maxWidth, targetHeight) * 0.54f).coerceIn(80.dp, 104.dp)
+                }
+
+                else -> (min(maxWidth, targetHeight) * 0.42f).coerceIn(38.dp, 60.dp)
             }
             val animatedIconSize by animateDpAsState(
                 targetValue = targetIconSize,
@@ -489,46 +495,51 @@ private fun CanvasTileScaffold(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(
-                                horizontal = if (isNarrow) 10.dp else 20.dp,
-                                vertical = 18.dp,
+                                horizontal = if (isNarrow) 10.dp else 14.dp,
+                                vertical = if (isHero) 16.dp else 18.dp,
                             ),
-                        horizontalAlignment = if (isNarrow) Alignment.CenterHorizontally else Alignment.Start,
-                        verticalArrangement = if (isNarrow || targetHeight < 136.dp) {
-                            Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = if (isHero || isNarrow || targetHeight < 136.dp) {
+                            Arrangement.spacedBy(
+                                if (isHero) 10.dp else 8.dp,
+                                Alignment.CenterVertically
+                            )
                         } else {
                             Arrangement.SpaceBetween
                         },
                     ) {
                         iconContent(animatedIconSize, containerShape)
-                        Column(
-                            horizontalAlignment = if (isNarrow) Alignment.CenterHorizontally else Alignment.Start,
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Text(
-                                text = label,
-                                style = if (isNarrow) {
-                                    MaterialTheme.typography.labelLargeEmphasized
-                                } else {
-                                    MaterialTheme.typography.titleLargeEmphasized
-                                },
-                                color = contentColor,
-                                textAlign = if (isNarrow) TextAlign.Center else TextAlign.Start,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (subLabel != null) {
+                        if (showLabel || subLabel != null) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
                                 Text(
-                                    text = subLabel,
-                                    style = if (isNarrow) {
-                                        MaterialTheme.typography.labelSmall
-                                    } else {
-                                        MaterialTheme.typography.labelMedium
+                                    text = label,
+                                    style = when {
+                                        isNarrow -> MaterialTheme.typography.labelLargeEmphasized
+                                        isHero -> MaterialTheme.typography.titleMediumEmphasized
+                                        else -> MaterialTheme.typography.titleLargeEmphasized
                                     },
-                                    color = contentColor.copy(alpha = 0.78f),
-                                    textAlign = if (isNarrow) TextAlign.Center else TextAlign.Start,
-                                    maxLines = 1,
+                                    color = contentColor,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
                                 )
+                                if (subLabel != null) {
+                                    Text(
+                                        text = subLabel,
+                                        style = if (isNarrow) {
+                                            MaterialTheme.typography.labelSmall
+                                        } else {
+                                            MaterialTheme.typography.labelMedium
+                                        },
+                                        color = contentColor.copy(alpha = 0.78f),
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                         }
                     }
@@ -628,7 +639,7 @@ private fun ShapedAppIcon(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(size * 0.72f)
+                    .size(size * 0.76f)
                     .clip(shape),
             )
         }
@@ -645,14 +656,14 @@ private fun ShapedAppIcon(
                     bitmap = iconAsset.monochrome,
                     contentDescription = null,
                     colorFilter = ColorFilter.tint(monochromeFg),
-                    modifier = Modifier.size(size * 0.52f),
+                    modifier = Modifier.size(size * 0.58f),
                 )
             } else {
                 Icon(
                     imageVector = fallbackGlyph,
                     contentDescription = null,
                     tint = monochromeFg,
-                    modifier = Modifier.size(size * 0.48f),
+                    modifier = Modifier.size(size * 0.52f),
                 )
             }
         }
@@ -669,6 +680,8 @@ private fun ShapedShortcutIcon(
     badgeBg: Color,
     badgeFg: Color,
 ) {
+    val badgeSize = (size * 0.32f).coerceIn(18.dp, 26.dp)
+    val badgeIconSize = (size * 0.17f).coerceIn(10.dp, 14.dp)
     Box(modifier = Modifier.size(size)) {
         Box(
             modifier = Modifier
@@ -699,7 +712,7 @@ private fun ShapedShortcutIcon(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .size(20.dp)
+                .size(badgeSize)
                 .clip(CircleShape)
                 .background(badgeBg)
                 .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
@@ -709,7 +722,7 @@ private fun ShapedShortcutIcon(
                 imageVector = InvokeIcons.ShortcutBolt,
                 contentDescription = null,
                 tint = badgeFg,
-                modifier = Modifier.size(11.dp),
+                modifier = Modifier.size(badgeIconSize),
             )
         }
     }
@@ -725,6 +738,8 @@ private fun ShapedContactIcon(
     badgeBg: Color,
     badgeFg: Color,
 ) {
+    val badgeSize = (size * 0.32f).coerceIn(18.dp, 26.dp)
+    val badgeIconSize = (size * 0.17f).coerceIn(10.dp, 14.dp)
     Box(modifier = Modifier.size(size)) {
         Box(
             modifier = Modifier
@@ -748,7 +763,7 @@ private fun ShapedContactIcon(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .size(20.dp)
+                .size(badgeSize)
                 .clip(CircleShape)
                 .background(badgeBg)
                 .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
@@ -758,7 +773,7 @@ private fun ShapedContactIcon(
                 imageVector = InvokeIcons.Phone,
                 contentDescription = null,
                 tint = badgeFg,
-                modifier = Modifier.size(11.dp),
+                modifier = Modifier.size(badgeIconSize),
             )
         }
     }

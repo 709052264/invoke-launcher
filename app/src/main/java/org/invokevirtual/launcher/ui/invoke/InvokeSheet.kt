@@ -246,6 +246,7 @@ internal fun InvokeSheetContent(
     }
 
     LaunchedEffect(autoFocusSearch) {
+        listState.scrollToItem(0)
         if (autoFocusSearch && !inPreview) {
             delay(80.milliseconds)
             runCatching { focusRequester.requestFocus() }
@@ -284,6 +285,10 @@ internal fun InvokeSheetContent(
         snapshotFlow { searchFieldState.text.toString() }.collect { text ->
             onQueryChange(text)
         }
+    }
+
+    LaunchedEffect(uiState.query, uiState.activeFilter) {
+        listState.scrollToItem(0)
     }
 
     Column(

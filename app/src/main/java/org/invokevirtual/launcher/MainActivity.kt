@@ -5,19 +5,33 @@ import android.content.Intent
 import android.content.pm.LauncherApps
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
@@ -27,12 +41,14 @@ import org.invokevirtual.launcher.data.LauncherSettings
 import org.invokevirtual.launcher.data.TileShapePreset
 import org.invokevirtual.launcher.data.TileSpan
 import org.invokevirtual.launcher.data.WidgetHeightTier
+import org.invokevirtual.launcher.system.DefaultLauncherHelper
 import org.invokevirtual.launcher.system.rememberWallpaperLegibility
 import org.invokevirtual.launcher.ui.home.HomeCanvas
 import org.invokevirtual.launcher.ui.home.HomeCanvasActions
 import org.invokevirtual.launcher.ui.home.buildDefaultCanvasBlocks
 import org.invokevirtual.launcher.ui.invoke.InvokeViewModel
 import org.invokevirtual.launcher.ui.studio.StudioActions
+import org.invokevirtual.launcher.ui.theme.InvokeIcons
 import org.invokevirtual.launcher.ui.theme.InvokeTheme
 
 class MainActivity : ComponentActivity() {
@@ -82,6 +98,42 @@ class MainActivity : ComponentActivity() {
             val wallpaperLegibility = rememberWallpaperLegibility()
             val scope = rememberCoroutineScope()
 
+            val context = LocalContext.current
+            var isDefaultLauncher by remember {
+                mutableStateOf(DefaultLauncherHelper.isDefaultLauncher(context))
+            }
+            var dismissedDefaultPrompt by rememberSaveable { mutableStateOf(false) }
+
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        isDefaultLauncher = DefaultLauncherHelper.isDefaultLauncher(context)
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+
+            val roleLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult(),
+            ) {
+                isDefaultLauncher = DefaultLauncherHelper.isDefaultLauncher(context)
+            }
+
+            val onRequestSetDefaultLauncher = remember(context, roleLauncher) {
+                {
+                    val roleIntent = DefaultLauncherHelper.createSetDefaultIntent(context)
+                    if (roleIntent != null) {
+                        roleLauncher.launch(roleIntent)
+                    } else {
+                        DefaultLauncherHelper.requestSetDefault(this@MainActivity)
+                    }
+                }
+            }
+
             // Keep system pinned shortcuts synchronized with pinned ShortcutTiles on Home Canvas.
             LaunchedEffect(canvasState.blocks) {
                 val shortcuts = canvasState.blocks.filterIsInstance<CanvasBlock.ShortcutTile>()
@@ -98,7 +150,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val studioActions = remember(scope, container) {
+            val studioActions = remember(scope, container, onRequestSetDefaultLauncher) {
                 StudioActions(
                     onToggleShowClock = { enabled ->
                         scope.launch { container.settingsStore.setShowClock(enabled) }
@@ -187,6 +239,7 @@ class MainActivity : ComponentActivity() {
                     onToggleShowQuickPeople = { enabled ->
                         scope.launch { container.settingsStore.setShowQuickPeople(enabled) }
                     },
+                    onRequestSetDefaultLauncher = onRequestSetDefaultLauncher,
                 )
             }
 
@@ -395,6 +448,16 @@ class MainActivity : ComponentActivity() {
                     onRemoveQuickContact = invokeViewModel::removeQuickContact,
                 )
 
+                if (!isDefaultLauncher && !dismissedDefaultPrompt) {
+                    SetDefaultLauncherDialog(
+                        onDismiss = { dismissedDefaultPrompt = true },
+                        onConfirm = {
+                            dismissedDefaultPrompt = true
+                            onRequestSetDefaultLauncher()
+                        },
+                    )
+                }
+
                 pendingPinRequest?.takeIf { it.isValid }?.let { request ->
                     PinItemConfirmDialog(
                         request = request,
@@ -518,5 +581,56 @@ private fun PinItemConfirmDialog(
                 Text("Cancel")
             }
         },
+    )
+}
+
+@androidx.compose.runtime.Composable
+private fun SetDefaultLauncherDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = InvokeIcons.Home,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp),
+            )
+        },
+        title = {
+            Text(
+                text = "Set as default launcher",
+                style = MaterialTheme.typography.headlineSmallEmphasized,
+                textAlign = TextAlign.Center,
+            )
+        },
+        text = {
+            Text(
+                text = "Set Invoke as your default home app to use gesture navigation, the living canvas, and unified search every time you go home.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Text("Set as default")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Text("Not now")
+            }
+        },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     )
 }
