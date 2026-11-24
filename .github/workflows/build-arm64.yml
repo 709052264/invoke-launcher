@@ -29,7 +29,7 @@ jobs:
       
       - name: Build arm64 debug APK
         run: |
-          ./gradlew assembleRelease --stacktrace
+          ./gradlew assembleRelease --stacktrace \
             -Pandroid.injected.signing.store.file=$(pwd)/my-release.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEY_STORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
