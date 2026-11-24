@@ -90,7 +90,7 @@ Invoke is independent, open source, and ad-free.
 
 ## License
 
-Reef is licensed under the [MIT License](https://opensource.org/licenses/MIT). You are free to use,
+Invoke is licensed under the [MIT License](https://opensource.org/licenses/MIT). You are free to use,
 modify, and distribute this
 software.
 
