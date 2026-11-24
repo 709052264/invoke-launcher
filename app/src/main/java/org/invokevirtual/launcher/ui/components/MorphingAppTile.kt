@@ -1,8 +1,6 @@
 package org.invokevirtual.launcher.ui.components
 
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Shape
 import android.graphics.Rect
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
