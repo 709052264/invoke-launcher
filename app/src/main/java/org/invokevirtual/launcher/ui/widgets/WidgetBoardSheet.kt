@@ -31,11 +31,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -71,7 +68,6 @@ import kotlinx.coroutines.withContext
 import org.invokevirtual.launcher.data.DarkMode
 import org.invokevirtual.launcher.data.LauncherSettings
 import org.invokevirtual.launcher.data.TileShapePreset
-import org.invokevirtual.launcher.data.WidgetHeightTier
 import org.invokevirtual.launcher.system.AvailableWidget
 import org.invokevirtual.launcher.system.WidgetHostController
 import org.invokevirtual.launcher.ui.theme.InvokeIcons
@@ -81,19 +77,12 @@ import org.invokevirtual.launcher.ui.theme.toContainerShape
 
 /**
  * M3 Expressive native Android AppWidget picker that binds, configures, and drops any installed
- * Android widget directly onto Invoke's Living Home Canvas with customizable container shapes
- * and preset or custom sizes.
+ * Android widget directly onto Invoke's Living Home Canvas.
  */
 @Composable
 fun WidgetPickerSheet(
     widgetHost: WidgetHostController?,
-    onWidgetPicked: (
-        appWidgetId: Int,
-        heightTier: WidgetHeightTier,
-        shape: TileShapePreset,
-        customColumns: Int?,
-        customHeightDp: Int?,
-    ) -> Unit,
+    onWidgetPicked: (appWidgetId: Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberBottomSheetState(
@@ -109,8 +98,8 @@ fun WidgetPickerSheet(
     ) {
         WidgetPickerContent(
             widgetHost = widgetHost,
-            onWidgetPicked = { id, tier, shape, customCols, customHeightDp ->
-                onWidgetPicked(id, tier, shape, customCols, customHeightDp)
+            onWidgetPicked = { id ->
+                onWidgetPicked(id)
                 onDismiss()
             },
             modifier = Modifier
@@ -125,31 +114,16 @@ fun WidgetPickerSheet(
 @Composable
 internal fun WidgetPickerContent(
     widgetHost: WidgetHostController?,
-    onWidgetPicked: (
-        appWidgetId: Int,
-        heightTier: WidgetHeightTier,
-        shape: TileShapePreset,
-        customColumns: Int?,
-        customHeightDp: Int?,
-    ) -> Unit,
+    onWidgetPicked: (appWidgetId: Int) -> Unit,
     modifier: Modifier = Modifier,
     previewWidgets: List<AvailableWidget>? = null,
 ) {
     val haptic = LocalHapticFeedback.current
     var pickerQuery by remember { mutableStateOf("") }
-    var selectedShape by remember { mutableStateOf(TileShapePreset.SQUIRCLE) }
     var pendingWidgetId by remember { mutableIntStateOf(-1) }
     var pendingProvider by remember { mutableStateOf<AppWidgetProviderInfo?>(null) }
 
-    val emitPicked: (Int) -> Unit = { id ->
-        onWidgetPicked(
-            id,
-            WidgetHeightTier.MEDIUM,
-            selectedShape,
-            null,
-            null,
-        )
-    }
+    val emitPicked: (Int) -> Unit = onWidgetPicked
 
     val configureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -233,8 +207,6 @@ internal fun WidgetPickerContent(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            val headerShape = selectedShape.toContainerShape(isHero = true)
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -243,7 +215,7 @@ internal fun WidgetPickerContent(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .clip(headerShape)
+                        .clip(TileShapePreset.SQUIRCLE.toContainerShape(isHero = true))
                         .background(MaterialTheme.colorScheme.secondaryContainer),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -264,52 +236,11 @@ internal fun WidgetPickerContent(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "Choose app to view widgets · ${selectedShape.label}",
+                        text = "Choose an app to view its widgets",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(
-                    items = TileShapePreset.entries,
-                    key = { it.name },
-                ) { shapePreset ->
-                    FilterChip(
-                        selected = selectedShape == shapePreset,
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            selectedShape = shapePreset
-                        },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clip(shapePreset.toContainerShape(isHero = true))
-                                    .background(
-                                        if (selectedShape == shapePreset) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                    ),
-                            )
-                        },
-                        shape = shapePreset.toContainerShape(isWide = true),
-                        label = {
-                            Text(
-                                text = shapePreset.label,
-                                style = MaterialTheme.typography.labelMediumEmphasized,
-                                maxLines = 1,
-                            )
-                        },
-                        modifier = Modifier.heightIn(min = 40.dp),
                     )
                 }
             }
@@ -569,7 +500,7 @@ internal fun WidgetPickerContent(
                                                             Box(
                                                                 modifier = Modifier
                                                                     .size(34.dp)
-                                                                    .clip(selectedShape.toContainerShape())
+                                                                    .clip(TileShapePreset.SQUIRCLE.toContainerShape())
                                                                     .background(MaterialTheme.colorScheme.tertiaryContainer),
                                                                 contentAlignment = Alignment.Center,
                                                             ) {
@@ -669,7 +600,7 @@ private fun WidgetPickerPreview() {
         ) {
             WidgetPickerContent(
                 widgetHost = null,
-                onWidgetPicked = { _, _, _, _, _ -> },
+                onWidgetPicked = {},
                 modifier = Modifier
                     .fillMaxSize()
                     .systemBarsPadding()

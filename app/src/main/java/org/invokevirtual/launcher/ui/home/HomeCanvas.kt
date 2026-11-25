@@ -88,9 +88,9 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.window.core.layout.WindowSizeClass
-import kotlin.math.abs
 import org.invokevirtual.launcher.data.CanvasBlock
 import org.invokevirtual.launcher.data.DarkMode
+import org.invokevirtual.launcher.data.FolderLayoutMode
 import org.invokevirtual.launcher.data.HomeCanvasState
 import org.invokevirtual.launcher.data.LauncherSettings
 import org.invokevirtual.launcher.data.QuickContact
@@ -116,17 +116,32 @@ import org.invokevirtual.launcher.ui.theme.InvokeIcons
 import org.invokevirtual.launcher.ui.theme.InvokeTheme
 import org.invokevirtual.launcher.ui.theme.LocalReducedMotion
 import org.invokevirtual.launcher.ui.widgets.WidgetPickerSheet
+import java.util.UUID
+import kotlin.math.abs
 
 @Immutable
 data class HomeCanvasActions(
-    val onAddApp: (InstalledApp, TileSpan, TileShapePreset, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
-    val onAddShortcut: (AppShortcutItem, TileSpan, TileShapePreset, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
+    val onAddApp: (InstalledApp, TileSpan, TileShapePreset, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _, _ -> },
+    val onAddShortcut: (AppShortcutItem, TileSpan, TileShapePreset, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _, _ -> },
     val onRemoveShortcut: (String, String, Long, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
     val onAddContact: (QuickContact, TileSpan, TileShapePreset, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
     val onRemoveContact: (String, List<CanvasBlock>) -> Unit = { _, _ -> },
+    val onAddSpacer: (String, TileSpan, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _ -> },
+    val onAddFolder: (String, List<AppKey>, TileSpan, TileShapePreset, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _, _, _ -> },
+    val onUpdateFolder: (String, String, List<AppKey>, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
+    val onAddAppToFolder: (String, AppKey, List<CanvasBlock>) -> Unit = { _, _, _ -> },
+    val onRemoveAppFromFolder: (String, AppKey, List<CanvasBlock>) -> Unit = { _, _, _ -> },
+    val onSetFolderLayout: (String, FolderLayoutMode, Int, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
+    val onAddSpacerToFolder: (String, String, TileSpan, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _, _ -> },
+    val onRemoveFolderItem: (String, String, List<CanvasBlock>) -> Unit = { _, _, _ -> },
+    val onMoveFolderItem: (String, String, Int, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
+    val onSetFolderItemSpan: (String, String, TileSpan, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
+    val onSetFolderItemCustomSize: (String, String, Int, Int, List<CanvasBlock>) -> Unit = { _, _, _, _, _ -> },
+    val onSetFolderItemShape: (String, String, TileShapePreset, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
+    val onSetFolderItemTone: (String, String, TileTone, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
+    val onSetFolderItemCustomBgColor: (String, String, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
     val onAddWidget: (Int, WidgetHeightTier, TileShapePreset, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _, _ -> },
     val onRemoveBlock: (CanvasBlock, List<CanvasBlock>) -> Unit = { _, _ -> },
-    val onRemoveApp: (InstalledApp, List<CanvasBlock>) -> Unit = { _, _ -> },
     val onMoveBlock: (String, Int, List<CanvasBlock>) -> Unit = { _, _, _ -> },
     val onSetTileSpan: (String, TileSpan, List<CanvasBlock>) -> Unit = { _, _, _ -> },
     val onSetTileCustomSize: (String, Int, Int, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
@@ -161,6 +176,7 @@ fun HomeCanvas(
     onTogglePrivateSpace: (Boolean) -> Unit = {},
     onSavePickedContacts: (List<QuickContact>) -> Unit = {},
     onRemoveQuickContact: (String) -> Unit = {},
+    onTogglePinInDrawer: (AppKey) -> Unit = {},
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -181,13 +197,19 @@ fun HomeCanvas(
     var studioOpen by rememberSaveable { mutableStateOf(false) }
     var widgetPickerOpen by rememberSaveable { mutableStateOf(false) }
     var addAppSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var openFolderId by rememberSaveable { mutableStateOf<String?>(null) }
+    var manageFolderAppsId by rememberSaveable { mutableStateOf<String?>(null) }
     var actionTargetApp by remember { mutableStateOf<InstalledApp?>(null) }
+    var actionTargetFromDrawer by remember { mutableStateOf(false) }
     var actionTargetContact by remember { mutableStateOf<QuickContact?>(null) }
 
     val appsByKey = remember(installedApps) { installedApps.associateBy { it.key } }
     val defaultBlocks = remember(installedApps) { buildDefaultCanvasBlocks(installedApps) }
     val effectiveBlocks = remember(canvasState, defaultBlocks) {
         if (canvasState.isCustomized) canvasState.blocks else defaultBlocks
+    }
+    val foldersList = remember(effectiveBlocks) {
+        effectiveBlocks.filterIsInstance<CanvasBlock.FolderTile>()
     }
     val visibleBlocks = remember(effectiveBlocks, settings.workspaceMode, isEditMode) {
         if (settings.workspaceMode == WorkspaceMode.DEEP_FOCUS && !isEditMode) {
@@ -214,8 +236,8 @@ fun HomeCanvas(
         } else if (pendingSelectId != null && effectiveBlocks.any { it.id == pendingSelectId }) {
             selectedBlockId = pendingSelectId
             pendingSelectId = null
-        } else if (selectedBlockId == null || effectiveBlocks.none { it.id == selectedBlockId }) {
-            selectedBlockId = effectiveBlocks.firstOrNull()?.id
+        } else if (selectedBlockId != null && effectiveBlocks.none { it.id == selectedBlockId }) {
+            selectedBlockId = null
         }
     }
     LaunchedEffect(selectedBlockId) {
@@ -241,6 +263,8 @@ fun HomeCanvas(
         state = backState,
         isBackEnabled = actionTargetApp != null ||
             actionTargetContact != null ||
+                manageFolderAppsId != null ||
+                openFolderId != null ||
             addAppSheetOpen ||
             widgetPickerOpen ||
             studioOpen ||
@@ -249,8 +273,13 @@ fun HomeCanvas(
             invokeSheetOpen,
         onBackCompleted = {
             when {
-                actionTargetApp != null -> actionTargetApp = null
+                actionTargetApp != null -> {
+                    actionTargetApp = null
+                    actionTargetFromDrawer = false
+                }
                 actionTargetContact != null -> actionTargetContact = null
+                manageFolderAppsId != null -> manageFolderAppsId = null
+                openFolderId != null -> openFolderId = null
                 addAppSheetOpen -> addAppSheetOpen = false
                 widgetPickerOpen -> widgetPickerOpen = false
                 studioOpen -> studioOpen = false
@@ -267,7 +296,10 @@ fun HomeCanvas(
             appsByKey = appsByKey,
             installedApps = installedApps,
             onLaunch = { app -> onLaunchApp(app, null) },
-            onLongPressApp = { app -> actionTargetApp = app },
+            onLongPressApp = { app ->
+                actionTargetFromDrawer = false
+                actionTargetApp = app
+            },
             onFallbackSearch = { openInvokeSheet(true) },
         )
     }
@@ -567,6 +599,8 @@ fun HomeCanvas(
                                 is CanvasBlock.AppTile -> overrideCols ?: block.effectiveColumns
                                 is CanvasBlock.ShortcutTile -> overrideCols ?: block.effectiveColumns
                                 is CanvasBlock.ContactTile -> overrideCols ?: block.effectiveColumns
+                                is CanvasBlock.SpacerBlock -> overrideCols ?: block.effectiveColumns
+                                is CanvasBlock.FolderTile -> overrideCols ?: block.effectiveColumns
                                 is CanvasBlock.WidgetBlock -> overrideCols ?: block.effectiveColumns
                             }.coerceAtMost(maxLineSpan)
                             GridItemSpan(cols)
@@ -613,6 +647,7 @@ fun HomeCanvas(
                                     },
                                     onLongClick = {
                                         if (resolvedApp != null) {
+                                            actionTargetFromDrawer = false
                                             actionTargetApp = resolvedApp
                                         } else {
                                             isEditMode = true
@@ -677,6 +712,54 @@ fun HomeCanvas(
                                     isSelected = isBlockSelected,
                                     onClick = { ContactsPickerHelper.dialContact(context, contact) },
                                     onLongClick = { actionTargetContact = contact },
+                                    onSelectInEdit = { selectedBlockId = block.id },
+                                    modifier = animateMod,
+                                )
+                            }
+
+                            is CanvasBlock.FolderTile -> {
+                                val displayBlock = if (previewOverride != null) {
+                                    block.copy(
+                                        customColumns = previewOverride.first,
+                                        customHeightDp = previewOverride.second,
+                                    )
+                                } else {
+                                    block
+                                }
+                                val folderApps = remember(block.apps, appsByKey) {
+                                    block.apps.mapNotNull { appsByKey[it] }
+                                }
+                                CanvasFolderBlockCard(
+                                    block = displayBlock,
+                                    folderApps = folderApps,
+                                    iconStyle = settings.iconStyle,
+                                    showLabel = settings.showLabels,
+                                    isEditMode = isEditMode,
+                                    isSelected = isBlockSelected,
+                                    appCatalog = appCatalog,
+                                    onClick = { openFolderId = block.id },
+                                    onLongClick = {
+                                        isEditMode = true
+                                        selectedBlockId = block.id
+                                    },
+                                    onSelectInEdit = { selectedBlockId = block.id },
+                                    modifier = animateMod,
+                                )
+                            }
+
+                            is CanvasBlock.SpacerBlock -> {
+                                val displayBlock = if (previewOverride != null) {
+                                    block.copy(
+                                        customColumns = previewOverride.first,
+                                        customHeightDp = previewOverride.second,
+                                    )
+                                } else {
+                                    block
+                                }
+                                CanvasSpacerBlockCard(
+                                    block = displayBlock,
+                                    isEditMode = isEditMode,
+                                    isSelected = isBlockSelected,
                                     onSelectInEdit = { selectedBlockId = block.id },
                                     modifier = animateMod,
                                 )
@@ -770,6 +853,8 @@ fun HomeCanvas(
                                         ?: fallbackMetaFor(activeBlock, selectedIndex.coerceAtLeast(0)).first
                                     is CanvasBlock.ShortcutTile -> activeBlock.label
                                     is CanvasBlock.ContactTile -> activeBlock.displayName
+                                    is CanvasBlock.SpacerBlock -> "Empty Space"
+                                    is CanvasBlock.FolderTile -> activeBlock.title.ifBlank { "Folder" }
                                     is CanvasBlock.WidgetBlock -> "Widget"
                                 }
                                 val previewOverride = liveWidgetResizePreview
@@ -791,6 +876,18 @@ fun HomeCanvas(
                                     } else {
                                         activeBlock.sizeLabel
                                     }
+
+                                    is CanvasBlock.SpacerBlock -> if (previewOverride != null) {
+                                        "${previewOverride.first}×${previewOverride.second}dp"
+                                    } else {
+                                        activeBlock.sizeLabel
+                                    }
+
+                                    is CanvasBlock.FolderTile -> if (previewOverride != null) {
+                                        "${previewOverride.first}×${previewOverride.second}dp"
+                                    } else {
+                                        activeBlock.sizeLabel
+                                    }
                                     is CanvasBlock.WidgetBlock -> if (previewOverride != null) {
                                         "${previewOverride.first}×${previewOverride.second}dp"
                                     } else {
@@ -801,38 +898,51 @@ fun HomeCanvas(
                                     is CanvasBlock.AppTile -> activeBlock.span
                                     is CanvasBlock.ShortcutTile -> activeBlock.span
                                     is CanvasBlock.ContactTile -> activeBlock.span
+                                    is CanvasBlock.SpacerBlock -> activeBlock.span
+                                    is CanvasBlock.FolderTile -> activeBlock.span
                                     is CanvasBlock.WidgetBlock -> null
                                 }
                                 val widgetBlock = activeBlock as? CanvasBlock.WidgetBlock
+                                val folderBlock = activeBlock as? CanvasBlock.FolderTile
                                 val currentWidgetSize = widgetBlock?.heightTier
                                 val activeBlockCols = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.effectiveColumns
                                     is CanvasBlock.ShortcutTile -> activeBlock.effectiveColumns
                                     is CanvasBlock.ContactTile -> activeBlock.effectiveColumns
+                                    is CanvasBlock.SpacerBlock -> activeBlock.effectiveColumns
+                                    is CanvasBlock.FolderTile -> activeBlock.effectiveColumns
                                     is CanvasBlock.WidgetBlock -> activeBlock.effectiveColumns
                                 }
                                 val activeBlockHeightDp = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.effectiveHeightDp
                                     is CanvasBlock.ShortcutTile -> activeBlock.effectiveHeightDp
                                     is CanvasBlock.ContactTile -> activeBlock.effectiveHeightDp
+                                    is CanvasBlock.SpacerBlock -> activeBlock.effectiveHeightDp
+                                    is CanvasBlock.FolderTile -> activeBlock.effectiveHeightDp
                                     is CanvasBlock.WidgetBlock -> activeBlock.effectiveHeightDp
                                 }
                                 val activeHasCustomSize = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.hasCustomSize
                                     is CanvasBlock.ShortcutTile -> activeBlock.hasCustomSize
                                     is CanvasBlock.ContactTile -> activeBlock.hasCustomSize
+                                    is CanvasBlock.SpacerBlock -> activeBlock.hasCustomSize
+                                    is CanvasBlock.FolderTile -> activeBlock.hasCustomSize
                                     is CanvasBlock.WidgetBlock -> activeBlock.hasCustomSize
                                 }
                                 val currentTone = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.tone
                                     is CanvasBlock.ShortcutTile -> activeBlock.tone
                                     is CanvasBlock.ContactTile -> activeBlock.tone
+                                    is CanvasBlock.SpacerBlock -> null
+                                    is CanvasBlock.FolderTile -> activeBlock.tone
                                     is CanvasBlock.WidgetBlock -> null
                                 }
                                 val currentCustomBgArgb = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.customBgArgb
                                     is CanvasBlock.ShortcutTile -> activeBlock.customBgArgb
                                     is CanvasBlock.ContactTile -> activeBlock.customBgArgb
+                                    is CanvasBlock.SpacerBlock -> null
+                                    is CanvasBlock.FolderTile -> activeBlock.customBgArgb
                                     is CanvasBlock.WidgetBlock -> null
                                 }
 
@@ -850,6 +960,9 @@ fun HomeCanvas(
                                     currentCustomBgArgb = currentCustomBgArgb,
                                     canMoveBack = selectedIndex > 0,
                                     canMoveForward = selectedIndex in 0 until visibleBlocks.lastIndex,
+                                    supportsShape = activeBlock !is CanvasBlock.SpacerBlock,
+                                    minCustomTileHeightDp = if (activeBlock is CanvasBlock.SpacerBlock) 24f else 64f,
+                                    maxCustomTileHeightDp = if (activeBlock is CanvasBlock.SpacerBlock) 360f else 280f,
                                     onMoveBack = {
                                         canvasActions.onMoveBlock(activeBlock.id, -1, effectiveBlocks)
                                     },
@@ -903,6 +1016,11 @@ fun HomeCanvas(
                                         } else {
                                             null
                                         }
+                                    } else {
+                                        null
+                                    },
+                                    onEditFolder = if (folderBlock != null) {
+                                        { manageFolderAppsId = folderBlock.id }
                                     } else {
                                         null
                                     },
@@ -972,6 +1090,7 @@ fun HomeCanvas(
             iconStyle = settings.iconStyle,
             showQuickPeople = settings.showQuickPeople,
             drawerTransparency = settings.drawerTransparency,
+            bottomSearchBar = settings.bottomSearchBar,
             appCatalog = appCatalog,
             onQueryChange = onInvokeQueryChange,
             onClearQuery = onInvokeClearQuery,
@@ -982,6 +1101,7 @@ fun HomeCanvas(
                 onLaunchApp(app, null)
             },
             onLongPressApp = { app ->
+                actionTargetFromDrawer = true
                 actionTargetApp = app
             },
             onLaunchShortcut = { shortcut ->
@@ -1009,16 +1129,16 @@ fun HomeCanvas(
     if (widgetPickerOpen) {
         WidgetPickerSheet(
             widgetHost = widgetHost,
-            onWidgetPicked = { appWidgetId, tier, shape, customCols, customHeightDp ->
+            onWidgetPicked = { appWidgetId ->
                 isEditMode = true
                 pendingSelectId = "widget_$appWidgetId"
                 selectedBlockId = "widget_$appWidgetId"
                 canvasActions.onAddWidget(
                     appWidgetId,
-                    tier,
-                    shape,
-                    customCols,
-                    customHeightDp,
+                    WidgetHeightTier.MEDIUM,
+                    TileShapePreset.SQUIRCLE,
+                    null,
+                    null,
                     effectiveBlocks,
                 )
             },
@@ -1031,82 +1151,216 @@ fun HomeCanvas(
             installedApps = installedApps,
             iconStyle = settings.iconStyle,
             appCatalog = appCatalog,
-            onSelectApp = { app, span, shape ->
+            onSelectApp = { app ->
                 isEditMode = true
-                canvasActions.onAddApp(app, span, shape, effectiveBlocks)
+                canvasActions.onAddApp(
+                    app,
+                    TileSpan.COMPACT,
+                    TileShapePreset.SQUIRCLE,
+                    null,
+                    null,
+                    effectiveBlocks
+                )
                 addAppSheetOpen = false
             },
-            onSelectShortcut = { shortcut, span, shape ->
+            onSelectShortcut = { shortcut ->
                 isEditMode = true
-                canvasActions.onAddShortcut(shortcut, span, shape, effectiveBlocks)
+                canvasActions.onAddShortcut(
+                    shortcut,
+                    TileSpan.COMPACT,
+                    TileShapePreset.LEAF,
+                    null,
+                    null,
+                    effectiveBlocks
+                )
+                addAppSheetOpen = false
+            },
+            onCreateFolder = { title, apps ->
+                isEditMode = true
+                canvasActions.onAddFolder(
+                    title,
+                    apps,
+                    TileSpan.COMPACT,
+                    TileShapePreset.SQUIRCLE,
+                    null,
+                    null,
+                    effectiveBlocks
+                )
+                addAppSheetOpen = false
+            },
+            onSelectSpacer = { span, customCols, customHeightDp ->
+                isEditMode = true
+                val newId = "spc_${UUID.randomUUID().toString().take(8)}"
+                pendingSelectId = newId
+                selectedBlockId = newId
+                canvasActions.onAddSpacer(newId, span, customCols, customHeightDp, effectiveBlocks)
                 addAppSheetOpen = false
             },
             onDismiss = { addAppSheetOpen = false },
         )
     }
 
+    openFolderId?.let { activeFolderId ->
+        val activeFolder = foldersList.firstOrNull { it.id == activeFolderId }
+        if (activeFolder != null) {
+            FolderBottomSheet(
+                folder = activeFolder,
+                appsByKey = appsByKey,
+                iconStyle = settings.iconStyle,
+                showLabels = settings.showLabels,
+                appCatalog = appCatalog,
+                onDismiss = { openFolderId = null },
+                actions = FolderSheetActions(
+                    onManageApps = { manageFolderAppsId = activeFolder.id },
+                    onSetLayout = { mode, cols ->
+                        canvasActions.onSetFolderLayout(
+                            activeFolder.id,
+                            mode,
+                            cols,
+                            effectiveBlocks
+                        )
+                    },
+                    onAddSpacer = { spacerId, span, cols, heightDp ->
+                        canvasActions.onAddSpacerToFolder(
+                            activeFolder.id,
+                            spacerId,
+                            span,
+                            cols,
+                            heightDp,
+                            effectiveBlocks
+                        )
+                    },
+                    onRemoveItem = { itemId ->
+                        canvasActions.onRemoveFolderItem(activeFolder.id, itemId, effectiveBlocks)
+                    },
+                    onMoveItem = { itemId, delta ->
+                        canvasActions.onMoveFolderItem(
+                            activeFolder.id,
+                            itemId,
+                            delta,
+                            effectiveBlocks
+                        )
+                    },
+                    onSetItemSpan = { itemId, span ->
+                        canvasActions.onSetFolderItemSpan(
+                            activeFolder.id,
+                            itemId,
+                            span,
+                            effectiveBlocks
+                        )
+                    },
+                    onSetItemCustomSize = { itemId, cols, heightDp ->
+                        canvasActions.onSetFolderItemCustomSize(
+                            activeFolder.id,
+                            itemId,
+                            cols,
+                            heightDp,
+                            effectiveBlocks
+                        )
+                    },
+                    onSetItemShape = { itemId, shape ->
+                        canvasActions.onSetFolderItemShape(
+                            activeFolder.id,
+                            itemId,
+                            shape,
+                            effectiveBlocks
+                        )
+                    },
+                    onSetItemTone = { itemId, tone ->
+                        canvasActions.onSetFolderItemTone(
+                            activeFolder.id,
+                            itemId,
+                            tone,
+                            effectiveBlocks
+                        )
+                    },
+                    onSetItemCustomBgColor = { itemId, argb ->
+                        canvasActions.onSetFolderItemCustomBgColor(
+                            activeFolder.id,
+                            itemId,
+                            argb,
+                            effectiveBlocks
+                        )
+                    },
+                ),
+                onLaunchApp = { app, bounds ->
+                    openFolderId = null
+                    onLaunchApp(app, bounds)
+                },
+                onLongPressApp = { app ->
+                    actionTargetFromDrawer = false
+                    actionTargetApp = app
+                },
+            )
+        }
+    }
+
+    manageFolderAppsId?.let { folderId ->
+        val activeFolder = foldersList.firstOrNull { it.id == folderId }
+        if (activeFolder != null) {
+            FolderAppsPickerSheet(
+                folder = activeFolder,
+                installedApps = installedApps,
+                iconStyle = settings.iconStyle,
+                appCatalog = appCatalog,
+                onSaveFolder = { newTitle, updatedKeys ->
+                    canvasActions.onUpdateFolder(
+                        activeFolder.id,
+                        newTitle,
+                        updatedKeys,
+                        effectiveBlocks
+                    )
+                },
+                onDismiss = { manageFolderAppsId = null },
+            )
+        }
+    }
+
     actionTargetApp?.let { targetApp ->
-        val existingBlock = effectiveBlocks
-            .filterIsInstance<CanvasBlock.AppTile>()
-            .firstOrNull { it.appKey == targetApp.key }
-        val pinnedShortcutIds = remember(effectiveBlocks, targetApp) {
-            effectiveBlocks
-                .filterIsInstance<CanvasBlock.ShortcutTile>()
-                .filter {
-                    it.packageName == targetApp.componentName.packageName &&
-                        it.userSerial == targetApp.key.userSerial
-                }
-                .map { it.shortcutId }
-                .toSet()
+        val activeFolder = openFolderId?.let { folderId ->
+            foldersList.firstOrNull { it.id == folderId && targetApp.key in it.apps }
         }
         AppActionSheet(
             app = targetApp,
-            canvasBlock = existingBlock,
-            pinnedShortcutIds = pinnedShortcutIds,
+            folders = foldersList,
+            activeFolder = activeFolder,
+            isFromDrawer = actionTargetFromDrawer,
+            isPinnedInDrawer = targetApp.key in invokeUiState.pinnedDrawerKeys,
             iconStyle = settings.iconStyle,
             appCatalog = appCatalog,
-            onDismiss = { actionTargetApp = null },
-            onAddToCanvas = { span ->
-                canvasActions.onAddApp(targetApp, span, TileShapePreset.SQUIRCLE, effectiveBlocks)
+            onDismiss = {
+                actionTargetApp = null
+                actionTargetFromDrawer = false
             },
-            onSetCanvasSize = { blockId, span ->
-                canvasActions.onSetTileSpan(blockId, span, effectiveBlocks)
+            onTogglePinInDrawer = {
+                onTogglePinInDrawer(targetApp.key)
             },
-            onSetCanvasCustomSize = { blockId, cols, heightDp ->
-                canvasActions.onSetTileCustomSize(blockId, cols, heightDp, effectiveBlocks)
+            onToggleFolderMembership = { folder ->
+                if (targetApp.key in folder.apps) {
+                    canvasActions.onRemoveAppFromFolder(folder.id, targetApp.key, effectiveBlocks)
+                } else {
+                    canvasActions.onAddAppToFolder(folder.id, targetApp.key, effectiveBlocks)
+                }
             },
-            onSetCanvasShape = { blockId, shape ->
-                canvasActions.onSetShape(blockId, shape, effectiveBlocks)
+            onCreateFolderWithApp = {
+                canvasActions.onAddFolder(
+                    targetApp.label,
+                    listOf(targetApp.key),
+                    TileSpan.COMPACT,
+                    TileShapePreset.SQUIRCLE,
+                    null,
+                    null,
+                    effectiveBlocks,
+                )
             },
-            onSetCanvasTone = { blockId, tone ->
-                canvasActions.onSetTone(blockId, tone, effectiveBlocks)
-            },
-            onSetCanvasCustomBg = { blockId, argb ->
-                canvasActions.onSetCustomBgColor(blockId, argb, effectiveBlocks)
-            },
-            onRemoveFromCanvas = {
-                canvasActions.onRemoveApp(targetApp, effectiveBlocks)
+            onRemoveFromActiveFolder = {
+                activeFolder?.let { folder ->
+                    canvasActions.onRemoveAppFromFolder(folder.id, targetApp.key, effectiveBlocks)
+                }
             },
             onLaunchShortcut = { shortcut ->
                 closeInvokeSheet()
                 appCatalog?.startShortcut(shortcut)
-            },
-            onTogglePinShortcut = { shortcut ->
-                if (shortcut.shortcutId in pinnedShortcutIds) {
-                    canvasActions.onRemoveShortcut(
-                        shortcut.packageName,
-                        shortcut.shortcutId,
-                        shortcut.userSerial,
-                        effectiveBlocks,
-                    )
-                } else {
-                    canvasActions.onAddShortcut(
-                        shortcut,
-                        TileSpan.COMPACT,
-                        TileShapePreset.LEAF,
-                        effectiveBlocks,
-                    )
-                }
             },
             onLaunchFloating = {
                 closeInvokeSheet()

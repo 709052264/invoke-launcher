@@ -139,6 +139,7 @@ data class StudioActions(
     val onSetDockApps: (List<AppKey>) -> Unit = {},
     val onSetDrawerTransparency: (Float) -> Unit = {},
     val onToggleShowQuickPeople: (Boolean) -> Unit = {},
+    val onToggleBottomSearchBar: (Boolean) -> Unit = {},
     val onRequestSetDefaultLauncher: () -> Unit = {},
 )
 
@@ -1002,14 +1003,21 @@ internal fun CustomizationStudioContent(
                 StudioSection(title = "App Drawer") {
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         StudioSwitchRow(
+                            title = "Bottom Search Bar",
+                            subtitle = "Place search bar at bottom with results growing upward",
+                            checked = settings.bottomSearchBar,
+                            shape = InvokeShapes.segmentedItemShape(0, 3),
+                            onCheckedChange = actions.onToggleBottomSearchBar,
+                        )
+                        StudioSwitchRow(
                             title = "Quick People",
                             subtitle = "Show 1-tap call & text favorites in the drawer",
                             checked = settings.showQuickPeople,
-                            shape = InvokeShapes.segmentedItemShape(0, 2),
+                            shape = InvokeShapes.segmentedItemShape(1, 3),
                             onCheckedChange = actions.onToggleShowQuickPeople,
                         )
                         Surface(
-                            shape = InvokeShapes.segmentedItemShape(1, 2),
+                            shape = InvokeShapes.segmentedItemShape(2, 3),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             modifier = Modifier.fillMaxWidth(),
                         ) {

@@ -134,8 +134,10 @@ data class LauncherSettings(
     val dockStyle: DockStyle = DockStyle.TOOLBAR,
     val showDockModeButton: Boolean = true,
     val dockApps: List<AppKey> = emptyList(),
+    val pinnedDrawerApps: List<AppKey> = emptyList(),
     val drawerTransparency: Float = 0f,
     val showQuickPeople: Boolean = true,
+    val bottomSearchBar: Boolean = false,
 ) {
     /** Night OLED mode forces true-black dark surfaces without mutating the user's daytime preference. */
     val effectiveAmoledBlack: Boolean
@@ -175,8 +177,10 @@ class SettingsStore(private val context: Context) {
         val DOCK_STYLE = stringPreferencesKey("dock_style")
         val SHOW_DOCK_MODE_BUTTON = booleanPreferencesKey("show_dock_mode_button")
         val DOCK_APPS = stringPreferencesKey("dock_apps")
+        val PINNED_DRAWER_APPS = stringPreferencesKey("pinned_drawer_apps")
         val DRAWER_TRANSPARENCY = floatPreferencesKey("drawer_transparency")
         val SHOW_QUICK_PEOPLE = booleanPreferencesKey("show_quick_people")
+        val BOTTOM_SEARCH_BAR = booleanPreferencesKey("bottom_search_bar")
     }
 
     val settings: Flow<LauncherSettings> = context.launcherDataStore.data.map { prefs ->
@@ -231,8 +235,10 @@ class SettingsStore(private val context: Context) {
                 ?: DockStyle.TOOLBAR,
             showDockModeButton = prefs[Keys.SHOW_DOCK_MODE_BUTTON] ?: true,
             dockApps = decodeDockApps(prefs[Keys.DOCK_APPS].orEmpty()),
+            pinnedDrawerApps = decodeAppKeys(prefs[Keys.PINNED_DRAWER_APPS].orEmpty()),
             drawerTransparency = (prefs[Keys.DRAWER_TRANSPARENCY] ?: 0f).coerceIn(0f, 1f),
             showQuickPeople = prefs[Keys.SHOW_QUICK_PEOPLE] ?: true,
+            bottomSearchBar = prefs[Keys.BOTTOM_SEARCH_BAR] ?: false,
         )
     }
 
@@ -352,6 +358,22 @@ class SettingsStore(private val context: Context) {
         }
     }
 
+    suspend fun togglePinnedDrawerApp(appKey: AppKey) {
+        context.launcherDataStore.edit { prefs ->
+            val current = decodeAppKeys(prefs[Keys.PINNED_DRAWER_APPS].orEmpty())
+            val updated = if (appKey in current) {
+                current - appKey
+            } else {
+                current + appKey
+            }
+            if (updated.isEmpty()) {
+                prefs.remove(Keys.PINNED_DRAWER_APPS)
+            } else {
+                prefs[Keys.PINNED_DRAWER_APPS] = encodeAppKeys(updated)
+            }
+        }
+    }
+
     suspend fun setDrawerTransparency(transparency: Float) {
         context.launcherDataStore.edit {
             it[Keys.DRAWER_TRANSPARENCY] = transparency.coerceIn(0f, 1f)
@@ -361,6 +383,12 @@ class SettingsStore(private val context: Context) {
     suspend fun setShowQuickPeople(enabled: Boolean) {
         context.launcherDataStore.edit {
             it[Keys.SHOW_QUICK_PEOPLE] = enabled
+        }
+    }
+
+    suspend fun setBottomSearchBar(enabled: Boolean) {
+        context.launcherDataStore.edit {
+            it[Keys.BOTTOM_SEARCH_BAR] = enabled
         }
     }
 
@@ -397,19 +425,25 @@ class SettingsStore(private val context: Context) {
         private const val RECORD_SEP = '\u001E'
         private const val FIELD_SEP = '\u001F'
 
-        internal fun encodeDockApps(apps: List<AppKey>): String =
-            apps.take(MAX_DOCK_APPS).joinToString(RECORD_SEP.toString()) { key ->
+        internal fun encodeAppKeys(apps: List<AppKey>): String =
+            apps.distinct().joinToString(RECORD_SEP.toString()) { key ->
                 "${key.packageName}$FIELD_SEP${key.className}$FIELD_SEP${key.userSerial}"
             }
 
-        internal fun decodeDockApps(raw: String): List<AppKey> {
+        internal fun decodeAppKeys(raw: String): List<AppKey> {
             if (raw.isEmpty()) return emptyList()
             return raw.split(RECORD_SEP).mapNotNull { record ->
                 val parts = record.split(FIELD_SEP)
                 if (parts.size < 3) return@mapNotNull null
                 val serial = parts[2].toLongOrNull() ?: return@mapNotNull null
                 AppKey(parts[0], parts[1], serial)
-            }.take(MAX_DOCK_APPS)
+            }.distinct()
         }
+
+        internal fun encodeDockApps(apps: List<AppKey>): String =
+            encodeAppKeys(apps.take(MAX_DOCK_APPS))
+
+        internal fun decodeDockApps(raw: String): List<AppKey> =
+            decodeAppKeys(raw).take(MAX_DOCK_APPS)
     }
 }

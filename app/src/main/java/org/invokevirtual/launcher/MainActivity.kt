@@ -92,6 +92,7 @@ class MainActivity : ComponentActivity() {
                     appCatalog = container.appCatalog,
                     homeCanvasStore = container.homeCanvasStore,
                     quickContactsStore = container.quickContactsStore,
+                    settingsStore = container.settingsStore,
                 ),
             )
             val invokeUiState by invokeViewModel.uiState.collectAsStateWithLifecycle()
@@ -239,23 +240,28 @@ class MainActivity : ComponentActivity() {
                     onToggleShowQuickPeople = { enabled ->
                         scope.launch { container.settingsStore.setShowQuickPeople(enabled) }
                     },
+                    onToggleBottomSearchBar = { enabled ->
+                        scope.launch { container.settingsStore.setBottomSearchBar(enabled) }
+                    },
                     onRequestSetDefaultLauncher = onRequestSetDefaultLauncher,
                 )
             }
 
             val canvasActions = remember(scope, container) {
                 HomeCanvasActions(
-                    onAddApp = { app, span, shape, fallbackDefaults ->
+                    onAddApp = { app, span, shape, customCols, customHeightDp, fallbackDefaults ->
                         scope.launch {
                             container.homeCanvasStore.addAppTile(
                                 appKey = app.key,
                                 fallbackDefaults = fallbackDefaults,
                                 span = span,
                                 shape = shape,
+                                customColumns = customCols,
+                                customHeightDp = customHeightDp,
                             )
                         }
                     },
-                    onAddShortcut = { shortcut, span, shape, fallbackDefaults ->
+                    onAddShortcut = { shortcut, span, shape, customCols, customHeightDp, fallbackDefaults ->
                         scope.launch {
                             container.homeCanvasStore.addShortcutTile(
                                 packageName = shortcut.packageName,
@@ -265,6 +271,8 @@ class MainActivity : ComponentActivity() {
                                 fallbackDefaults = fallbackDefaults,
                                 span = span,
                                 shape = shape,
+                                customColumns = customCols,
+                                customHeightDp = customHeightDp,
                             )
                         }
                     },
@@ -296,6 +304,150 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     },
+                    onAddSpacer = { spacerId, span, customCols, customHeightDp, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.addSpacerBlock(
+                                fallbackDefaults = fallbackDefaults,
+                                span = span,
+                                customColumns = customCols,
+                                customHeightDp = customHeightDp,
+                                explicitId = spacerId,
+                            )
+                        }
+                    },
+                    onAddFolder = { title, apps, span, shape, customCols, customHeightDp, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.addFolderTile(
+                                title = title,
+                                apps = apps,
+                                fallbackDefaults = fallbackDefaults,
+                                span = span,
+                                shape = shape,
+                                customColumns = customCols,
+                                customHeightDp = customHeightDp,
+                            )
+                        }
+                    },
+                    onUpdateFolder = { folderId, title, apps, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.updateFolder(
+                                folderId = folderId,
+                                title = title,
+                                apps = apps,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onAddAppToFolder = { folderId, appKey, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.addAppToFolder(
+                                folderId = folderId,
+                                appKey = appKey,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onRemoveAppFromFolder = { folderId, appKey, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.removeAppFromFolder(
+                                folderId = folderId,
+                                appKey = appKey,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onSetFolderLayout = { folderId, layoutMode, gridColumns, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.setFolderLayout(
+                                folderId = folderId,
+                                layoutMode = layoutMode,
+                                gridColumns = gridColumns,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onAddSpacerToFolder = { folderId, spacerId, span, customCols, customHeightDp, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.addSpacerToFolder(
+                                folderId = folderId,
+                                span = span,
+                                customColumns = customCols,
+                                customHeightDp = customHeightDp,
+                                explicitId = spacerId,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onRemoveFolderItem = { folderId, itemId, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.removeFolderItem(
+                                folderId = folderId,
+                                itemId = itemId,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onMoveFolderItem = { folderId, itemId, delta, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.moveFolderItem(
+                                folderId = folderId,
+                                itemId = itemId,
+                                delta = delta,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onSetFolderItemSpan = { folderId, itemId, span, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.setFolderItemSpan(
+                                folderId = folderId,
+                                itemId = itemId,
+                                span = span,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onSetFolderItemCustomSize = { folderId, itemId, columns, heightDp, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.setFolderItemCustomSize(
+                                folderId = folderId,
+                                itemId = itemId,
+                                columns = columns,
+                                heightDp = heightDp,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onSetFolderItemShape = { folderId, itemId, shape, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.setFolderItemShape(
+                                folderId = folderId,
+                                itemId = itemId,
+                                shape = shape,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onSetFolderItemTone = { folderId, itemId, tone, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.setFolderItemTone(
+                                folderId = folderId,
+                                itemId = itemId,
+                                tone = tone,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
+                    onSetFolderItemCustomBgColor = { folderId, itemId, argb, fallbackDefaults ->
+                        scope.launch {
+                            container.homeCanvasStore.setFolderItemCustomBgColor(
+                                folderId = folderId,
+                                itemId = itemId,
+                                argb = argb,
+                                fallbackDefaults = fallbackDefaults,
+                            )
+                        }
+                    },
                     onAddWidget = { appWidgetId, heightTier, shape, customColumns, customHeightDp, fallbackDefaults ->
                         scope.launch {
                             container.homeCanvasStore.addWidgetBlock(
@@ -315,14 +467,6 @@ class MainActivity : ComponentActivity() {
                         scope.launch {
                             container.homeCanvasStore.removeBlock(
                                 blockId = block.id,
-                                fallbackDefaults = fallbackDefaults,
-                            )
-                        }
-                    },
-                    onRemoveApp = { app, fallbackDefaults ->
-                        scope.launch {
-                            container.homeCanvasStore.removeApp(
-                                appKey = app.key,
                                 fallbackDefaults = fallbackDefaults,
                             )
                         }
@@ -446,6 +590,9 @@ class MainActivity : ComponentActivity() {
                     onTogglePrivateSpace = invokeViewModel::togglePrivateSpace,
                     onSavePickedContacts = invokeViewModel::savePickedContacts,
                     onRemoveQuickContact = invokeViewModel::removeQuickContact,
+                    onTogglePinInDrawer = { appKey ->
+                        scope.launch { container.settingsStore.togglePinnedDrawerApp(appKey) }
+                    },
                 )
 
                 if (!isDefaultLauncher && !dismissedDefaultPrompt) {
