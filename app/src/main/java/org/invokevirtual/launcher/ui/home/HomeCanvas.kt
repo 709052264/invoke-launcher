@@ -74,6 +74,8 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -103,8 +105,12 @@ import org.invokevirtual.launcher.system.AppCatalog
 import org.invokevirtual.launcher.system.AppKey
 import org.invokevirtual.launcher.system.AppShortcutItem
 import org.invokevirtual.launcher.system.ContactsPickerHelper
+import org.invokevirtual.launcher.system.DoubleTapAction
 import org.invokevirtual.launcher.system.InstalledApp
+import org.invokevirtual.launcher.system.ScreenLock
+import org.invokevirtual.launcher.system.ScreenLockService
 import org.invokevirtual.launcher.system.WidgetHostController
+import org.invokevirtual.launcher.system.doubleTapAction
 import org.invokevirtual.launcher.ui.components.AppActionSheet
 import org.invokevirtual.launcher.ui.invoke.InvokeFilter
 import org.invokevirtual.launcher.ui.invoke.InvokeSheet
@@ -346,6 +352,8 @@ fun HomeCanvas(
     }
 
     var dragAccumulator by remember { mutableFloatStateOf(0f) }
+    val doubleTapExclusions = remember { DoubleTapExclusions() }
+    var rootOrigin by remember { mutableStateOf(Offset.Zero) }
     val gridState = rememberLazyGridState()
     val swipeThresholdPx = with(LocalDensity.current) { 48.dp.toPx() }
     var overscrollDeltaY by remember { mutableFloatStateOf(0f) }
@@ -420,8 +428,27 @@ fun HomeCanvas(
         modifier = modifier
             .fillMaxSize()
             .then(scrimModifier)
-            .pointerInput(isEditMode) {
+            .onGloballyPositioned { rootOrigin = it.positionInRoot() }
+            .pointerInput(isEditMode, settings.doubleTapToSleep) {
                 detectTapGestures(
+                    onDoubleTap = if (settings.doubleTapToSleep) {
+                        { offset ->
+                            val action = doubleTapAction(
+                                enabled = true,
+                                supported = ScreenLock.isSupported,
+                                excluded = doubleTapExclusions.contains(offset + rootOrigin),
+                                isEditMode = isEditMode,
+                                serviceConnected = ScreenLockService.isConnected,
+                            )
+                            when (action) {
+                                DoubleTapAction.LOCK -> ScreenLockService.lock()
+                                DoubleTapAction.OPEN_SETTINGS -> ScreenLock.openSettings(context)
+                                DoubleTapAction.NONE -> Unit
+                            }
+                        }
+                    } else {
+                        null
+                    },
                     onLongPress = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         isEditMode = !isEditMode
@@ -489,7 +516,8 @@ fun HomeCanvas(
                     modifier = Modifier
                         .systemBarsPadding()
                         .displayCutoutPadding()
-                        .padding(start = 24.dp, end = 8.dp),
+                        .padding(start = 24.dp, end = 8.dp)
+                        .excludeFromDoubleTap(doubleTapExclusions, "dock"),
                 )
             }
 
@@ -780,7 +808,7 @@ fun HomeCanvas(
                                     isEditMode = isEditMode,
                                     isSelected = isBlockSelected,
                                     onSelectInEdit = { selectedBlockId = block.id },
-                                    modifier = animateMod,
+                                    modifier = animateMod.excludeFromDoubleTap(doubleTapExclusions, block.id),
                                 )
                             }
                         }
@@ -1066,6 +1094,7 @@ fun HomeCanvas(
                                         onAddWidgetClick = { widgetPickerOpen = true },
                                         onOpenStudio = { studioOpen = true },
                                         onInvokeSearchClick = { openInvokeSheet(true) },
+                                        modifier = Modifier.excludeFromDoubleTap(doubleTapExclusions, "dock"),
                                     )
                                 }
                             }

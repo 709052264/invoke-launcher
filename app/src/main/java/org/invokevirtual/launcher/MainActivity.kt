@@ -43,6 +43,7 @@ import org.invokevirtual.launcher.data.TileShapePreset
 import org.invokevirtual.launcher.data.TileSpan
 import org.invokevirtual.launcher.data.WidgetHeightTier
 import org.invokevirtual.launcher.system.DefaultLauncherHelper
+import org.invokevirtual.launcher.system.ScreenLockService
 import org.invokevirtual.launcher.system.rememberWallpaperLegibility
 import org.invokevirtual.launcher.ui.components.LocalNotificationBadges
 import org.invokevirtual.launcher.ui.components.NotificationBadges
@@ -246,6 +247,10 @@ class MainActivity : ComponentActivity() {
                     },
                     onToggleBottomSearchBar = { enabled ->
                         scope.launch { container.settingsStore.setBottomSearchBar(enabled) }
+                    },
+                    onToggleDoubleTapToSleep = { enabled ->
+                        scope.launch { container.settingsStore.setDoubleTapToSleep(enabled) }
+                        if (!enabled) ScreenLockService.disable()
                     },
                     onSelectBadgeStyle = { style ->
                         scope.launch { container.settingsStore.setBadgeStyle(style) }
