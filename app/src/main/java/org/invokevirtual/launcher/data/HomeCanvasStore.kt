@@ -217,49 +217,6 @@ sealed interface CanvasBlock {
     }
 
     @Immutable
-    data class ContactTile(
-        override val id: String,
-        val lookupKey: String,
-        val displayName: String,
-        val phoneNumber: String,
-        val span: TileSpan = TileSpan.COMPACT,
-        override val shape: TileShapePreset = TileShapePreset.CIRCLE,
-        val tone: TileTone = TileTone.TERTIARY,
-        val customBgArgb: Int? = null,
-        val customColumns: Int? = null,
-        val customHeightDp: Int? = null,
-    ) : CanvasBlock {
-        val effectiveColumns: Int
-            get() = (customColumns ?: span.columns).coerceIn(1, 4)
-
-        val effectiveHeightDp: Int
-            get() = (customHeightDp ?: defaultHeightDpForSpan(span)).coerceIn(64, 280)
-
-        val isSquareSize: Boolean
-            get() = customColumns == null && customHeightDp == null && span == TileSpan.HERO
-
-        val hasCustomSize: Boolean
-            get() = customColumns != null || customHeightDp != null
-
-        val sizeLabel: String
-            get() = if (hasCustomSize) {
-                "${effectiveColumns}×${effectiveHeightDp}dp"
-            } else {
-                span.label
-            }
-
-        val initials: String
-            get() = displayName
-                .trim()
-                .split(' ')
-                .filter { it.isNotEmpty() }
-                .take(2)
-                .map { it.first().uppercaseChar() }
-                .joinToString("")
-                .ifEmpty { "#" }
-    }
-
-    @Immutable
     data class WidgetBlock(
         override val id: String,
         val appWidgetId: Int,
@@ -397,12 +354,6 @@ data class HomeCanvasState(
                 it.shortcutId == shortcutId &&
                 it.userSerial == userSerial
         }
-
-    fun containsContact(lookupKey: String): Boolean =
-        blocks.any { it is CanvasBlock.ContactTile && it.lookupKey == lookupKey }
-
-    fun blockForContact(lookupKey: String): CanvasBlock.ContactTile? =
-        blocks.firstOrNull { it is CanvasBlock.ContactTile && it.lookupKey == lookupKey } as? CanvasBlock.ContactTile
 }
 
 /**
@@ -560,15 +511,6 @@ class HomeCanvasStore(private val context: Context) {
                     it.shortcutId == shortcutId &&
                     it.userSerial == userSerial
             }
-        }
-    }
-
-    suspend fun removeContactTile(
-        lookupKey: String,
-        fallbackDefaults: List<CanvasBlock>,
-    ) {
-        updateBlocks(fallbackDefaults) { list ->
-            list.filterNot { it is CanvasBlock.ContactTile && it.lookupKey == lookupKey }
         }
     }
 
@@ -1080,11 +1022,6 @@ class HomeCanvasStore(private val context: Context) {
                             customColumns = null,
                             customHeightDp = null,
                         )
-                        is CanvasBlock.ContactTile -> block.copy(
-                            span = span,
-                            customColumns = null,
-                            customHeightDp = null,
-                        )
                         is CanvasBlock.SpacerBlock -> block.copy(
                             span = span,
                             customColumns = null,
@@ -1122,10 +1059,6 @@ class HomeCanvasStore(private val context: Context) {
                             customHeightDp = clampedTileHeight,
                         )
                         is CanvasBlock.ShortcutTile -> block.copy(
-                            customColumns = clampedCols,
-                            customHeightDp = clampedTileHeight,
-                        )
-                        is CanvasBlock.ContactTile -> block.copy(
                             customColumns = clampedCols,
                             customHeightDp = clampedTileHeight,
                         )
@@ -1200,7 +1133,6 @@ class HomeCanvasStore(private val context: Context) {
                     when (block) {
                         is CanvasBlock.AppTile -> block.copy(shape = block.shape.next())
                         is CanvasBlock.ShortcutTile -> block.copy(shape = block.shape.next())
-                        is CanvasBlock.ContactTile -> block.copy(shape = block.shape.next())
                         is CanvasBlock.SpacerBlock -> block
                         is CanvasBlock.FolderTile -> block.copy(shape = block.shape.next())
                         is CanvasBlock.WidgetBlock -> block.copy(shape = block.shape.next())
@@ -1223,7 +1155,6 @@ class HomeCanvasStore(private val context: Context) {
                     when (block) {
                         is CanvasBlock.AppTile -> block.copy(shape = shape)
                         is CanvasBlock.ShortcutTile -> block.copy(shape = shape)
-                        is CanvasBlock.ContactTile -> block.copy(shape = shape)
                         is CanvasBlock.SpacerBlock -> block
                         is CanvasBlock.FolderTile -> block.copy(shape = shape)
                         is CanvasBlock.WidgetBlock -> block.copy(shape = shape)
@@ -1245,7 +1176,6 @@ class HomeCanvasStore(private val context: Context) {
                     when (block) {
                         is CanvasBlock.AppTile -> block.copy(tone = block.tone.next(), customBgArgb = null)
                         is CanvasBlock.ShortcutTile -> block.copy(tone = block.tone.next(), customBgArgb = null)
-                        is CanvasBlock.ContactTile -> block.copy(tone = block.tone.next(), customBgArgb = null)
                         is CanvasBlock.SpacerBlock -> block
                         is CanvasBlock.FolderTile -> block.copy(
                             tone = block.tone.next(),
@@ -1271,7 +1201,6 @@ class HomeCanvasStore(private val context: Context) {
                     when (block) {
                         is CanvasBlock.AppTile -> block.copy(tone = tone, customBgArgb = null)
                         is CanvasBlock.ShortcutTile -> block.copy(tone = tone, customBgArgb = null)
-                        is CanvasBlock.ContactTile -> block.copy(tone = tone, customBgArgb = null)
                         is CanvasBlock.SpacerBlock -> block
                         is CanvasBlock.FolderTile -> block.copy(tone = tone, customBgArgb = null)
                         is CanvasBlock.WidgetBlock -> block
@@ -1295,7 +1224,6 @@ class HomeCanvasStore(private val context: Context) {
                     when (block) {
                         is CanvasBlock.AppTile -> block.copy(customBgArgb = opaqueArgb)
                         is CanvasBlock.ShortcutTile -> block.copy(customBgArgb = opaqueArgb)
-                        is CanvasBlock.ContactTile -> block.copy(customBgArgb = opaqueArgb)
                         is CanvasBlock.SpacerBlock -> block
                         is CanvasBlock.FolderTile -> block.copy(customBgArgb = opaqueArgb)
                         is CanvasBlock.WidgetBlock -> block
@@ -1358,19 +1286,6 @@ class HomeCanvasStore(private val context: Context) {
                         block.customHeightDp?.toString().orEmpty(),
                     ).joinToString(FIELD_SEP.toString())
 
-                    is CanvasBlock.ContactTile -> listOf(
-                        "C",
-                        block.id.clean(),
-                        block.lookupKey.clean(),
-                        block.displayName.clean(),
-                        block.phoneNumber.clean(),
-                        block.span.name,
-                        block.shape.name,
-                        block.tone.name,
-                        block.customBgArgb?.toString().orEmpty(),
-                        block.customColumns?.toString().orEmpty(),
-                        block.customHeightDp?.toString().orEmpty(),
-                    ).joinToString(FIELD_SEP.toString())
 
                     is CanvasBlock.SpacerBlock -> listOf(
                         "E",
@@ -1497,27 +1412,6 @@ class HomeCanvasStore(private val context: Context) {
                         )
                     }
 
-                    "C" -> {
-                        if (parts.size < 8) return@mapNotNull null
-                        val span = runCatching { TileSpan.valueOf(parts[5]) }.getOrDefault(TileSpan.COMPACT)
-                        val shape = runCatching { TileShapePreset.valueOf(parts[6]) }.getOrDefault(TileShapePreset.CIRCLE)
-                        val tone = runCatching { TileTone.valueOf(parts[7]) }.getOrDefault(TileTone.TERTIARY)
-                        val customBgArgb = parts.getOrNull(8)?.takeIf { it.isNotEmpty() }?.toIntOrNull()
-                        val customColumns = parts.getOrNull(9)?.takeIf { it.isNotEmpty() }?.toIntOrNull()?.coerceIn(1, 4)
-                        val customHeightDp = parts.getOrNull(10)?.takeIf { it.isNotEmpty() }?.toIntOrNull()?.coerceIn(64, 280)
-                        CanvasBlock.ContactTile(
-                            id = parts[1],
-                            lookupKey = parts[2],
-                            displayName = parts[3],
-                            phoneNumber = parts[4],
-                            span = span,
-                            shape = shape,
-                            tone = tone,
-                            customBgArgb = customBgArgb,
-                            customColumns = customColumns,
-                            customHeightDp = customHeightDp,
-                        )
-                    }
 
                     "W" -> {
                         if (parts.size < 4) return@mapNotNull null
