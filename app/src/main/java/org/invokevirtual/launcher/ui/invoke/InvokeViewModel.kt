@@ -95,7 +95,7 @@ class InvokeViewModel(
         val privateSpace = values[5] as PrivateSpaceState
         @Suppress("UNCHECKED_CAST")
 
-        val pinnedDrawerOrder = values[7] as List<AppKey>
+        val pinnedDrawerOrder = values[6] as List<AppKey>
 
         val appsByKey = allApps.associateBy { it.key }
         val pinnedDrawerApps = pinnedDrawerOrder.mapNotNull { appsByKey[it] }
