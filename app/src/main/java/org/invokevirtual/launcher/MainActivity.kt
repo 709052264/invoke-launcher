@@ -294,14 +294,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     },
-                    onRemoveContact = { lookupKey, fallbackDefaults ->
-                        scope.launch {
-                            container.homeCanvasStore.removeContactTile(
-                                lookupKey = lookupKey,
-                                fallbackDefaults = fallbackDefaults,
-                            )
-                        }
-                    },
                     onAddSpacer = { spacerId, span, customCols, customHeightDp, fallbackDefaults ->
                         scope.launch {
                             container.homeCanvasStore.addSpacerBlock(

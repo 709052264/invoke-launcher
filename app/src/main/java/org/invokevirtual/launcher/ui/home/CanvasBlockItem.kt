@@ -217,61 +217,6 @@ fun CanvasShortcutBlockCard(
 }
 
 @Composable
-fun CanvasContactBlockCard(
-    block: CanvasBlock.ContactTile,
-    showLabel: Boolean,
-    isEditMode: Boolean,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onSelectInEdit: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val customColor = block.customBgArgb?.let(::Color)
-    val containerColor = customColor ?: block.tone.containerColor()
-    val contentColor = customColor?.let(::contrastingForegroundFor) ?: block.tone.contentColor()
-    val badgeBgColor = customColor ?: block.tone.badgeContainerColor()
-    val badgeFgColor = customColor?.let(::contrastingForegroundFor) ?: block.tone.badgeContentColor()
-    val isFloating = block.effectiveColumns == 1 &&
-        (if (block.hasCustomSize) block.effectiveHeightDp <= 116 && block.customBgArgb == null else block.span == TileSpan.COMPACT)
-
-    CanvasTileScaffold(
-        span = block.span,
-        effectiveColumns = block.effectiveColumns,
-        effectiveHeightDp = block.effectiveHeightDp,
-        isSquareSize = block.isSquareSize,
-        hasCustomSize = block.hasCustomSize,
-        shapePreset = block.shape,
-        label = block.displayName,
-        subLabel = block.phoneNumber,
-        showLabel = showLabel,
-        hasCustomBg = block.customBgArgb != null,
-        containerColor = containerColor,
-        contentColor = contentColor,
-        isEditMode = isEditMode,
-        isSelected = isSelected,
-        accessibilityLabel = "${block.displayName}, quick contact",
-        accessibilityActionLabel = "Contact options",
-        onClick = { onClick() },
-        onLongClick = onLongClick,
-        onSelectInEdit = onSelectInEdit,
-        modifier = modifier,
-        iconContent = { iconSize, morphShape ->
-            val isContainerTile = !isFloating
-            ShapedContactIcon(
-                initials = block.initials,
-                shape = if (isContainerTile) RoundedCornerShape(percent = 26) else morphShape,
-                size = iconSize,
-                bgColor = if (isContainerTile) contentColor.copy(alpha = 0.11f) else containerColor,
-                fgColor = contentColor,
-                badgeBg = if (isContainerTile) containerColor else badgeBgColor,
-                badgeFg = if (isContainerTile) contentColor else badgeFgColor,
-            )
-        },
-    )
-}
-
-@Composable
 fun CanvasSpacerBlockCard(
     block: CanvasBlock.SpacerBlock,
     isEditMode: Boolean,
