@@ -616,7 +616,6 @@ fun HomeCanvas(
                             val cols = when (block) {
                                 is CanvasBlock.AppTile -> overrideCols ?: block.effectiveColumns
                                 is CanvasBlock.ShortcutTile -> overrideCols ?: block.effectiveColumns
-                                is CanvasBlock.ContactTile -> overrideCols ?: block.effectiveColumns
                                 is CanvasBlock.SpacerBlock -> overrideCols ?: block.effectiveColumns
                                 is CanvasBlock.FolderTile -> overrideCols ?: block.effectiveColumns
                                 is CanvasBlock.WidgetBlock -> overrideCols ?: block.effectiveColumns
@@ -709,16 +708,6 @@ fun HomeCanvas(
                                 )
                             }
 
-                            is CanvasBlock.ContactTile -> {
-                                val displayBlock = if (previewOverride != null) {
-                                    block.copy(
-                                        customColumns = previewOverride.first,
-                                        customHeightDp = previewOverride.second,
-                                    )
-                                } else {
-                                    block
-                                }
-                            }
 
                             is CanvasBlock.FolderTile -> {
                                 val displayBlock = if (previewOverride != null) {
@@ -855,7 +844,6 @@ fun HomeCanvas(
                                     is CanvasBlock.AppTile -> appsByKey[activeBlock.appKey]?.label
                                         ?: fallbackMetaFor(activeBlock, selectedIndex.coerceAtLeast(0)).first
                                     is CanvasBlock.ShortcutTile -> activeBlock.label
-                                    is CanvasBlock.ContactTile -> activeBlock.displayName
                                     is CanvasBlock.SpacerBlock -> "Empty Space"
                                     is CanvasBlock.FolderTile -> activeBlock.title.ifBlank { "Folder" }
                                     is CanvasBlock.WidgetBlock -> "Widget"
@@ -870,11 +858,6 @@ fun HomeCanvas(
                                         activeBlock.sizeLabel
                                     }
                                     is CanvasBlock.ShortcutTile -> if (previewOverride != null) {
-                                        "${previewOverride.first}×${previewOverride.second}dp"
-                                    } else {
-                                        activeBlock.sizeLabel
-                                    }
-                                    is CanvasBlock.ContactTile -> if (previewOverride != null) {
                                         "${previewOverride.first}×${previewOverride.second}dp"
                                     } else {
                                         activeBlock.sizeLabel
@@ -900,7 +883,6 @@ fun HomeCanvas(
                                 val currentTileSpan = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.span
                                     is CanvasBlock.ShortcutTile -> activeBlock.span
-                                    is CanvasBlock.ContactTile -> activeBlock.span
                                     is CanvasBlock.SpacerBlock -> activeBlock.span
                                     is CanvasBlock.FolderTile -> activeBlock.span
                                     is CanvasBlock.WidgetBlock -> null
@@ -911,7 +893,6 @@ fun HomeCanvas(
                                 val activeBlockCols = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.effectiveColumns
                                     is CanvasBlock.ShortcutTile -> activeBlock.effectiveColumns
-                                    is CanvasBlock.ContactTile -> activeBlock.effectiveColumns
                                     is CanvasBlock.SpacerBlock -> activeBlock.effectiveColumns
                                     is CanvasBlock.FolderTile -> activeBlock.effectiveColumns
                                     is CanvasBlock.WidgetBlock -> activeBlock.effectiveColumns
@@ -919,7 +900,6 @@ fun HomeCanvas(
                                 val activeBlockHeightDp = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.effectiveHeightDp
                                     is CanvasBlock.ShortcutTile -> activeBlock.effectiveHeightDp
-                                    is CanvasBlock.ContactTile -> activeBlock.effectiveHeightDp
                                     is CanvasBlock.SpacerBlock -> activeBlock.effectiveHeightDp
                                     is CanvasBlock.FolderTile -> activeBlock.effectiveHeightDp
                                     is CanvasBlock.WidgetBlock -> activeBlock.effectiveHeightDp
@@ -927,7 +907,6 @@ fun HomeCanvas(
                                 val activeHasCustomSize = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.hasCustomSize
                                     is CanvasBlock.ShortcutTile -> activeBlock.hasCustomSize
-                                    is CanvasBlock.ContactTile -> activeBlock.hasCustomSize
                                     is CanvasBlock.SpacerBlock -> activeBlock.hasCustomSize
                                     is CanvasBlock.FolderTile -> activeBlock.hasCustomSize
                                     is CanvasBlock.WidgetBlock -> activeBlock.hasCustomSize
@@ -935,7 +914,6 @@ fun HomeCanvas(
                                 val currentTone = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.tone
                                     is CanvasBlock.ShortcutTile -> activeBlock.tone
-                                    is CanvasBlock.ContactTile -> activeBlock.tone
                                     is CanvasBlock.SpacerBlock -> null
                                     is CanvasBlock.FolderTile -> activeBlock.tone
                                     is CanvasBlock.WidgetBlock -> null
@@ -943,7 +921,6 @@ fun HomeCanvas(
                                 val currentCustomBgArgb = when (activeBlock) {
                                     is CanvasBlock.AppTile -> activeBlock.customBgArgb
                                     is CanvasBlock.ShortcutTile -> activeBlock.customBgArgb
-                                    is CanvasBlock.ContactTile -> activeBlock.customBgArgb
                                     is CanvasBlock.SpacerBlock -> null
                                     is CanvasBlock.FolderTile -> activeBlock.customBgArgb
                                     is CanvasBlock.WidgetBlock -> null
