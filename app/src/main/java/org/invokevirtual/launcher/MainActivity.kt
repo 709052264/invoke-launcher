@@ -294,16 +294,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     },
-                    onAddContact = { contact, span, shape, fallbackDefaults ->
-                        scope.launch {
-                            container.homeCanvasStore.addContactTile(
-                                contact = contact,
-                                fallbackDefaults = fallbackDefaults,
-                                span = span,
-                                shape = shape,
-                            )
-                        }
-                    },
                     onRemoveContact = { lookupKey, fallbackDefaults ->
                         scope.launch {
                             container.homeCanvasStore.removeContactTile(
