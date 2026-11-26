@@ -387,7 +387,6 @@ fun TileIconGlyph(
 // 👇 ADD YOUR FUNCTION HERE 👇
 private fun getIconShape(style: IconStyle): Shape = when (style) {
     IconStyle.CIRCLE -> CircleShape
-    }
     // FULL_COLOR 保持原来默认的圆形行为
     else -> CircleShape
 }
