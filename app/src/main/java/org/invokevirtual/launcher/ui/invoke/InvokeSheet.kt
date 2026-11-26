@@ -1,5 +1,7 @@
 package org.invokevirtual.launcher.ui.invoke
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.shape.CircleShape
 import org.invokevirtual.launcher.ui.home.ShapedAppIcon
 import android.app.Activity
@@ -205,6 +207,14 @@ internal fun InvokeSheetContent(
     drawerTransparency: Float = 0f,
     bottomSearchBar: Boolean = false,
 ) {
+    // 👇 新增：加载所有快捷方式（包含 PWA）
+    val allShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog) {
+        value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
+            withContext(Dispatchers.Default) { appCatalog.loadAllShortcuts() }
+        } else {
+            emptyList()
+        }
+    }
     val cardAlpha = (1f - drawerTransparency.coerceIn(0f, 1f) * 0.65f).coerceIn(0.35f, 1f)
     val context = LocalContext.current
     val inPreview = LocalInspectionMode.current
@@ -221,21 +231,24 @@ internal fun InvokeSheetContent(
         }
     }
 
-    val showPinnedSectionInBrowse = !uiState.isSearching &&
+    val showShortcutsSectionInBrowse = !uiState.isSearching &&
             uiState.activeFilter == InvokeFilter.ALL &&
-            uiState.pinnedDrawerApps.isNotEmpty()
-    val browsePinnedItemCount = if (showPinnedSectionInBrowse) {
-        1 + uiState.pinnedDrawerApps.size
+            allShortcuts.isNotEmpty()
+
+    val browseShortcutItemCount = if (showShortcutsSectionInBrowse) {
+        1 + allShortcuts.size
     } else {
         0
     }
 
+    // 👇 修改：将 browseShortcutItemCount 加入计算
     val sectionStartIndices = remember(
         uiState.sections,
         browsePinnedItemCount,
+        browseShortcutItemCount, // 新增
     ) {
         buildMap {
-            var itemIndex = browsePinnedItemCount
+            var itemIndex = browsePinnedItemCount + browseShortcutItemCount // 起始索引加上 Shortcut 区域的长度
             for (section in uiState.sections) {
                 put(section.letter, itemIndex)
                 itemIndex += 1 + section.apps.size
