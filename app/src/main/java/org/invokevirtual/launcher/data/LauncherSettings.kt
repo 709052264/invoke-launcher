@@ -100,7 +100,6 @@ enum class LauncherFontPreset(
 
 enum class IconStyle(val label: String) {
     THEMED_MONOCHROME("Monochrome"),
-    SYSTEM("System Default"),
     CIRCLE("Circle"),
     // ... add more as needed
 }
