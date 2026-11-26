@@ -69,7 +69,6 @@ fun AppActionSheet(
     onRemoveFromActiveFolder: () -> Unit = {},
     onTogglePinInDrawer: (() -> Unit)? = null,
     onLaunchShortcut: (AppShortcutItem) -> Unit,
-    onLaunchFloating: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onUninstall: () -> Unit,
 ) {
@@ -130,10 +129,6 @@ fun AppActionSheet(
                 onDismiss()
                 onLaunchShortcut(shortcut)
             },
-            onLaunchFloating = {
-                onDismiss()
-                onLaunchFloating()
-            },
             onOpenAppInfo = {
                 onDismiss()
                 onOpenAppInfo()
@@ -166,7 +161,6 @@ internal fun AppActionSheetContent(
     onRemoveFromActiveFolder: () -> Unit = {},
     onTogglePinInDrawer: (() -> Unit)? = null,
     onLaunchShortcut: (AppShortcutItem) -> Unit,
-    onLaunchFloating: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onUninstall: () -> Unit,
 ) {
@@ -346,14 +340,6 @@ internal fun AppActionSheetContent(
             }
             add(
                 SheetActionRow(
-                    label = "Open in floating window",
-                    icon = InvokeIcons.BubbleWindow,
-                    tint = MaterialTheme.colorScheme.primary,
-                    onClick = onLaunchFloating,
-                ),
-            )
-            add(
-                SheetActionRow(
                     label = "App info",
                     icon = InvokeIcons.Info,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -453,7 +439,6 @@ private fun AppActionSheetPreview() {
                     canUninstall = true,
                     onTogglePinInDrawer = {},
                     onLaunchShortcut = {},
-                    onLaunchFloating = {},
                     onOpenAppInfo = {},
                     onUninstall = {},
                 )
