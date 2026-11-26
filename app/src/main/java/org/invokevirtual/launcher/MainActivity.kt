@@ -603,7 +603,6 @@ class MainActivity : ComponentActivity() {
                         onInvokeClearQuery = invokeViewModel::clearQuery,
                         onInvokeSelectFilter = invokeViewModel::selectFilter,
                         onTogglePrivateSpace = invokeViewModel::togglePrivateSpace,
-                        onSavePickedContacts = invokeViewModel::savePickedContacts,
                         onRemoveQuickContact = invokeViewModel::removeQuickContact,
                         onTogglePinInDrawer = { appKey ->
                             scope.launch { container.settingsStore.togglePinnedDrawerApp(appKey) }

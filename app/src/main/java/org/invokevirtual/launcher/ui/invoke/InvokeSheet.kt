@@ -203,7 +203,6 @@ internal fun InvokeSheetContent(
     onLongPressApp: (InstalledApp) -> Unit,
     onLaunchShortcut: (AppShortcutItem) -> Unit,
     onTogglePrivateSpace: (Boolean) -> Unit,
-    onSavePickedContacts: (List<QuickContact>) -> Unit,
     modifier: Modifier = Modifier,
     onLongPressQuickContact: (QuickContact) -> Unit = {},
     drawerTransparency: Float = 0f,
@@ -228,9 +227,6 @@ internal fun InvokeSheetContent(
             val sessionUri = result.data?.data ?: return@rememberLauncherForActivityResult
             coroutineScope.launch {
                 val picked = ContactsPickerHelper.parsePickerResult(context, sessionUri)
-                if (picked.isNotEmpty()) {
-                    onSavePickedContacts(picked)
-                }
             }
         }
     }
@@ -1371,7 +1367,6 @@ private fun InvokeSheetBrowsePreview() {
                 onLongPressApp = {},
                 onLaunchShortcut = {},
                 onTogglePrivateSpace = {},
-                onSavePickedContacts = {},
                 modifier = Modifier
                     .fillMaxSize()
                     .systemBarsPadding()
@@ -1428,7 +1423,6 @@ private fun InvokeSheetSearchPreview() {
                 onLongPressApp = {},
                 onLaunchShortcut = {},
                 onTogglePrivateSpace = {},
-                onSavePickedContacts = {},
                 modifier = Modifier
                     .fillMaxSize()
                     .systemBarsPadding()
@@ -1479,7 +1473,6 @@ private fun InvokeSheetBottomSearchPreview() {
                 onLongPressApp = {},
                 onLaunchShortcut = {},
                 onTogglePrivateSpace = {},
-                onSavePickedContacts = {},
                 modifier = Modifier
                     .fillMaxSize()
                     .systemBarsPadding()

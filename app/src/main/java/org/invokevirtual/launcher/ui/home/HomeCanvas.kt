@@ -179,8 +179,6 @@ fun HomeCanvas(
     onInvokeClearQuery: () -> Unit = {},
     onInvokeSelectFilter: (InvokeFilter) -> Unit = {},
     onTogglePrivateSpace: (Boolean) -> Unit = {},
-    onSavePickedContacts: (List<QuickContact>) -> Unit = {},
-    onRemoveQuickContact: (String) -> Unit = {},
     onTogglePinInDrawer: (AppKey) -> Unit = {},
 ) {
     val context = LocalContext.current
