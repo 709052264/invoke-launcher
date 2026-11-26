@@ -1136,7 +1136,6 @@ fun HomeCanvas(
                 appCatalog?.startShortcut(shortcut)
             },
             onTogglePrivateSpace = onTogglePrivateSpace,
-            onSavePickedContacts = onSavePickedContacts,
             },
         )
     }
