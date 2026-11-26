@@ -387,8 +387,6 @@ fun TileIconGlyph(
 // 👇 ADD YOUR FUNCTION HERE 👇
 private fun getIconShape(style: IconStyle): Shape = when (style) {
     IconStyle.CIRCLE -> CircleShape
-    IconStyle.SQUIRCLE -> RoundedCornerShape(percent = 30)
-    IconStyle.ROUNDED_SQUARE -> RoundedCornerShape(percent = 20)
     IconStyle.SYSTEM -> {
         // Android 系统自适应图标遮罩无公开 Compose API。
         // 多数 OEM 使用近似 squircle（圆角约 22%~25%），用此近似。
