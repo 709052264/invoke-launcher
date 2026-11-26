@@ -181,8 +181,6 @@ fun InvokeSheet(
             onLongPressApp = onLongPressApp,
             onLaunchShortcut = onLaunchShortcut,
             onTogglePrivateSpace = onTogglePrivateSpace,
-            onSavePickedContacts = onSavePickedContacts,
-            onLongPressQuickContact = onLongPressQuickContact,
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.88f)
@@ -409,7 +407,7 @@ internal fun InvokeSheetContent(
                                     result = math,
                                     cardAlpha = cardAlpha,
                                     modifier = Modifier.padding(
-                                        top = if (hasApps || hasShortcuts || hasContacts || hasContactPrompt) 10.dp else 0.dp,
+                                        top = if (hasApps || hasShortcuts) 10.dp else 0.dp,
                                     ),
                                 )
                             }
@@ -435,7 +433,7 @@ internal fun InvokeSheetContent(
                                     onLongClick = { onLongPressApp(app) },
                                 )
                             }
-                            if (hasMath || hasShortcuts || hasContacts || hasContactPrompt) {
+                            if (hasMath || hasShortcuts) {
                                 item(key = "apps_search_header") {
                                     SectionHeaderLabel(
                                         title = "Apps",
@@ -472,7 +470,7 @@ internal fun InvokeSheetContent(
                                 )
                             }
                         }
-                        if (!hasApps && !hasMath && !hasShortcuts && !hasContactPrompt) {
+                        if (!hasApps && !hasMath && !hasShortcuts) {
                             item(key = "empty_search") {
                                 EmptySearchCard(
                                     query = uiState.query.trim(),
@@ -517,7 +515,7 @@ internal fun InvokeSheetContent(
                         }
 
                         if (hasApps) {
-                            if (hasMath || hasShortcuts || hasContacts || hasContactPrompt) {
+                            if (hasMath || hasShortcuts) {
                                 item(key = "apps_search_header") {
                                     SectionHeaderLabel(
                                         title = "Apps",
@@ -545,7 +543,7 @@ internal fun InvokeSheetContent(
                                     onLongClick = { onLongPressApp(app) },
                                 )
                             }
-                        } else if (!hasMath && !hasShortcuts && !hasContacts && !hasContactPrompt) {
+                        } else if (!hasMath && !hasShortcuts) {
                             item(key = "empty_search") {
                                 EmptySearchCard(
                                     query = uiState.query.trim(),
