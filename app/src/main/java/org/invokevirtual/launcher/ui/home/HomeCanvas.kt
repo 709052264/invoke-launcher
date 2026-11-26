@@ -103,7 +103,6 @@ import org.invokevirtual.launcher.data.WorkspaceMode
 import org.invokevirtual.launcher.system.AppCatalog
 import org.invokevirtual.launcher.system.AppKey
 import org.invokevirtual.launcher.system.AppShortcutItem
-import org.invokevirtual.launcher.system.ContactsPickerHelper
 import org.invokevirtual.launcher.system.DoubleTapAction
 import org.invokevirtual.launcher.system.InstalledApp
 import org.invokevirtual.launcher.system.ScreenLock
@@ -719,16 +718,6 @@ fun HomeCanvas(
                                 } else {
                                     block
                                 }
-                                CanvasContactBlockCard(
-                                    block = displayBlock,
-                                    showLabel = settings.showLabels,
-                                    isEditMode = isEditMode,
-                                    isSelected = isBlockSelected,
-                                    onClick = { ContactsPickerHelper.dialContact(context, contact) },
-                                    onLongClick = { actionTargetContact = contact },
-                                    onSelectInEdit = { selectedBlockId = block.id },
-                                    modifier = animateMod,
-                                )
                             }
 
                             is CanvasBlock.FolderTile -> {

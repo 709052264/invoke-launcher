@@ -111,7 +111,6 @@ import org.invokevirtual.launcher.system.AppIconAsset
 import org.invokevirtual.launcher.system.AppKey
 import org.invokevirtual.launcher.system.AppProfile
 import org.invokevirtual.launcher.system.AppShortcutItem
-import org.invokevirtual.launcher.system.ContactsPickerHelper
 import org.invokevirtual.launcher.system.InstalledApp
 import org.invokevirtual.launcher.system.PrivateSpaceState
 import org.invokevirtual.launcher.ui.components.NotificationBadgeBox
