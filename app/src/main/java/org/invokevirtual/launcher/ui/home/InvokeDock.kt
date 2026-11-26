@@ -366,7 +366,7 @@ private fun DockActionSlotButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        NotificationBadgeBox(apps = listOfNotNull(action.app?.key), iconSize = 44.dp) {
+        NotificationBadgeBox(apps = listOfNotNull(action.app?.key), iconSize = 48.dp) {
             when {
                 iconAsset != null && (iconStyle == IconStyle.FULL_COLOR || iconAsset!!.monochrome == null) -> {
                     Image(
@@ -374,7 +374,7 @@ private fun DockActionSlotButton(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .clip(CircleShape),
                     )
                 }
