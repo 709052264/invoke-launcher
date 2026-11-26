@@ -126,14 +126,7 @@ fun InvokeBottomDock(
         when (dockStyle) {
             DockStyle.TOOLBAR -> {
                 HorizontalFloatingToolbar(
-                    expanded = true,
-                    modifier = Modifier
-                        .align(if (showModeButton) Alignment.BottomStart else Alignment.BottomCenter)
-                        .padding(bottom = 12.dp),
-                    colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-                        toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
-                        toolbarContentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
+                    // ... 保持原样 ...
                 ) {
                     quickActions.forEach { action ->
                         DockActionSlotButton(
@@ -147,27 +140,26 @@ fun InvokeBottomDock(
                         Spacer(Modifier.width(4.dp))
                     }
 
-                    InvokeSearchPillButton(
-                        searchCd = searchCd,
-                        onClick = onInvokeSearchClick,
-                    )
+                    // 👇 新增这个 if 判断 👇
+                    if (showModeButton) {
+                        InvokeSearchPillButton(
+                            searchCd = searchCd,
+                            onClick = onInvokeSearchClick,
+                        )
+                    }
                 }
             }
 
             DockStyle.MINIMAL_SEARCH -> {
-                Surface(
-                    shape = RoundedCornerShape(percent = 50),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    tonalElevation = 4.dp,
-                    modifier = Modifier
-                        .align(if (showModeButton) Alignment.BottomStart else Alignment.BottomCenter)
-                        .padding(bottom = 12.dp),
-                ) {
-                    Row(modifier = Modifier.padding(6.dp)) {
-                        InvokeSearchPillButton(
-                            searchCd = searchCd,
-                            onClick = onInvokeSearchClick,
+                if (showModeButton) { // 👇 整体包裹
+                    Surface(
+                        shape = RoundedCornerShape(percent = 50),
+                        // ... 保持原样 ...
+                    ) {
+                        Row(modifier = Modifier.padding(6.dp)) {
+                            InvokeSearchPillButton(
+                                searchCd = searchCd,
+                                onClick = onInvokeSearchClick,
                         )
                     }
                 }
