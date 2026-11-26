@@ -231,33 +231,48 @@ internal fun InvokeSheetContent(
         }
     }
 
-    val showShortcutsSectionInBrowse = !uiState.isSearching &&
-            uiState.activeFilter == InvokeFilter.ALL &&
-            allShortcuts.isNotEmpty()
-
-    val browseShortcutItemCount = if (showShortcutsSectionInBrowse) {
-        1 + allShortcuts.size
-    } else {
-        0
+    // 👇 新增：按首字母对 Shortcuts 进行分组
+    val shortcutsByLetter = remember(allShortcuts) {
+        allShortcuts.groupBy { shortcut ->
+            val c = shortcut.label.firstOrNull()?.uppercaseChar()
+            if (c != null && c.isLetter()) c else '#'
+        }
     }
 
-    // 👇 修改：将 browseShortcutItemCount 加入计算
+    // 👇 新增：合并 App 和 Shortcut 的字母，去重并排序
+    val allLetters = remember(uiState.sections, shortcutsByLetter) {
+        (uiState.sections.map { it.letter } + shortcutsByLetter.keys).distinct().sortedWith(
+            compareBy({ it != '#' }, { it })
+        )
+    }
+
+    // 👇 修改：重新计算字母导航栏的跳转索引
     val sectionStartIndices = remember(
+        allLetters,
         uiState.sections,
+        shortcutsByLetter,
         browsePinnedItemCount,
-        browseShortcutItemCount, // 新增
     ) {
         buildMap {
-            var itemIndex = browsePinnedItemCount + browseShortcutItemCount // 起始索引加上 Shortcut 区域的长度
-            for (section in uiState.sections) {
-                put(section.letter, itemIndex)
-                itemIndex += 1 + section.apps.size
+            var itemIndex = browsePinnedItemCount
+            for (letter in allLetters) {
+                val appCount = uiState.sections.find { it.letter == letter }?.apps?.size ?: 0
+                val shortcutCount = shortcutsByLetter[letter]?.size ?: 0
+                if (appCount > 0 || shortcutCount > 0) {
+                    put(letter, itemIndex)
+                    itemIndex += 1 + appCount + shortcutCount
+                }
             }
         }
     }
     
-    val scrubberLetters = remember(uiState.sections) {
-        uiState.sections.map { it.letter }
+    // 👇 修改：过滤出实际有内容的字母
+    val scrubberLetters = remember(allLetters, uiState.sections, shortcutsByLetter) {
+        allLetters.filter { letter ->
+            val appCount = uiState.sections.find { it.letter == letter }?.apps?.size ?: 0
+            val shortcutCount = shortcutsByLetter[letter]?.size ?: 0
+            appCount > 0 || shortcutCount > 0
+        }
     }
     val isPinnedFilterBrowse = !uiState.isSearching && uiState.activeFilter == InvokeFilter.PINNED
     val showScrubber = !uiState.isSearching && !isPinnedFilterBrowse && scrubberLetters.size >= 3
@@ -611,32 +626,51 @@ internal fun InvokeSheetContent(
                             }
                         }
 
-                        uiState.sections.forEach { section ->
-                            item(key = "header_${section.letter}") {
-                                LetterSectionHeader(
-                                    letter = section.letter,
-                                    count = section.apps.size,
-                                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
-                                )
-                            }
-                            itemsIndexed(
-                                items = section.apps,
-                                key = { _, app ->
-                                    "${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
-                                },
-                            ) { index, app ->
-                                InvokeAppRow(
-                                    app = app,
-                                    isPinnedInDrawer = app.key in uiState.pinnedDrawerKeys,
-                                    isTopSearchMatch = false,
-                                    index = index,
-                                    count = section.apps.size,
-                                    cardAlpha = cardAlpha,
-                                    iconStyle = iconStyle,
-                                    appCatalog = appCatalog,
-                                    onClick = { onLaunchApp(app) },
-                                    onLongClick = { onLongPressApp(app) },
-                                )
+                        allLetters.forEach { letter ->
+                            val sectionApps = uiState.sections.find { it.letter == letter }?.apps ?: emptyList()
+                            val sectionShortcuts = shortcutsByLetter[letter] ?: emptyList()
+
+                            if (sectionApps.isNotEmpty() || sectionShortcuts.isNotEmpty()) {
+                                item(key = "header_$letter") {
+                                    LetterSectionHeader(
+                                        letter = letter,
+                                        count = sectionApps.size + sectionShortcuts.size,
+                                        modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
+                                    )
+                                }
+                                // 先渲染该字母下的普通 App
+                                itemsIndexed(
+                                    items = sectionApps,
+                                    key = { _, app ->
+                                        "${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
+                                    },
+                                ) { index, app ->
+                                    InvokeAppRow(
+                                        app = app,
+                                        isPinnedInDrawer = app.key in uiState.pinnedDrawerKeys,
+                                        isTopSearchMatch = false,
+                                        index = index,
+                                        count = sectionApps.size + sectionShortcuts.size,
+                                        cardAlpha = cardAlpha,
+                                        iconStyle = iconStyle,
+                                        appCatalog = appCatalog,
+                                        onClick = { onLaunchApp(app) },
+                                        onLongClick = { onLongPressApp(app) },
+                                    )
+                                }
+                                // 紧接着渲染该字母下的 Shortcuts（例如 PWA）
+                                itemsIndexed(
+                                    items = sectionShortcuts,
+                                    key = { _, sc -> "shortcut_${sc.id}" },
+                                ) { index, shortcut ->
+                                    ShortcutResultRow(
+                                        shortcut = shortcut,
+                                        index = sectionApps.size + index,
+                                        count = sectionApps.size + sectionShortcuts.size,
+                                        cardAlpha = cardAlpha,
+                                        onClick = { onLaunchShortcut(shortcut) },
+                                    )
+                                }
                             }
                         }
                     }
