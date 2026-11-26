@@ -564,7 +564,6 @@ class HomeCanvasStore(private val context: Context) {
     }
 
     suspend fun addContactTile(
-        contact: QuickContact,
         fallbackDefaults: List<CanvasBlock>,
         span: TileSpan = TileSpan.COMPACT,
         shape: TileShapePreset = TileShapePreset.CIRCLE,

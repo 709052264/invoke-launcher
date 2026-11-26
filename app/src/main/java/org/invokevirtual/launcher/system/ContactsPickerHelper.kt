@@ -9,7 +9,6 @@ import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsPickerSessionContract
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.invokevirtual.launcher.data.QuickContact
 
 /**
  * Privacy-first Android 17 Contacts Picker integration (`ContactsPickerSessionContract.ACTION_PICK_CONTACTS`)
@@ -63,63 +62,6 @@ object ContactsPickerHelper {
             ContactsContract.Data.MIMETYPE,
             ContactsContract.Data.DATA1,
         )
-
-        val aggregated = LinkedHashMap<String, QuickContact>()
-        runCatching {
-            context.contentResolver.query(resultUri, projection, null, null, null)?.use { cursor ->
-                val lookupIdx = cursor.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY)
-                val nameIdx = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)
-                val mimeIdx = cursor.getColumnIndex(ContactsContract.Data.MIMETYPE)
-                val data1Idx = cursor.getColumnIndex(ContactsContract.Data.DATA1)
-
-                while (cursor.moveToNext()) {
-                    val mime = if (mimeIdx >= 0) cursor.getString(mimeIdx) else Phone.CONTENT_ITEM_TYPE
-                    if (mime != null && mime != Phone.CONTENT_ITEM_TYPE) continue
-
-                    val phone = if (data1Idx >= 0) cursor.getString(data1Idx)?.trim().orEmpty() else ""
-                    if (phone.isEmpty()) continue
-
-                    val displayName = if (nameIdx >= 0) {
-                        cursor.getString(nameIdx)?.trim().orEmpty().ifEmpty { phone }
-                    } else {
-                        phone
-                    }
-                    val lookupKey = if (lookupIdx >= 0) {
-                        cursor.getString(lookupIdx)?.takeIf { it.isNotBlank() } ?: phone
-                    } else {
-                        phone
-                    }
-
-                    if (lookupKey !in aggregated) {
-                        aggregated[lookupKey] = QuickContact(
-                            lookupKey = lookupKey,
-                            displayName = displayName,
-                            phoneNumber = phone,
-                        )
-                    }
-                }
-            }
-        }
         aggregated.values.toList()
-    }
-
-    fun dialContact(context: Context, contact: QuickContact) {
-        runCatching {
-            val intent = Intent(Intent.ACTION_DIAL).apply {
-                data = Uri.fromParts("tel", contact.phoneNumber, null)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-        }
-    }
-
-    fun messageContact(context: Context, contact: QuickContact) {
-        runCatching {
-            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.fromParts("smsto", contact.phoneNumber, null)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-        }
     }
 }

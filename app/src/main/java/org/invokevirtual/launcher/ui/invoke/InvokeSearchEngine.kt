@@ -1,7 +1,6 @@
 package org.invokevirtual.launcher.ui.invoke
 
 import androidx.compose.runtime.Immutable
-import org.invokevirtual.launcher.data.QuickContact
 import org.invokevirtual.launcher.system.InstalledApp
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -37,31 +36,6 @@ object InvokeSearchEngine {
      */
     fun rankApps(rawQuery: String, apps: List<InstalledApp>): List<InstalledApp> =
         rankByLabel(rawQuery, apps) { it.label }
-
-    /**
-     * Ranks pinned [QuickContact]s against [rawQuery], stripping optional natural verb prefixes
-     * such as `"call mom"`, `"text alex"`, or `"msg sam"`.
-     */
-    fun rankContacts(rawQuery: String, contacts: List<QuickContact>): List<QuickContact> {
-        if (contacts.isEmpty()) return emptyList()
-        val trimmed = rawQuery.trim()
-        if (trimmed.isEmpty()) return emptyList()
-
-        val lower = trimmed.lowercase()
-        if (lower in CONTACT_INTENT_KEYWORDS) {
-            return contacts
-        }
-        val matchedPrefix = CONTACT_VERB_PREFIXES.firstOrNull { lower.startsWith(it) }
-        val effectiveQuery = if (matchedPrefix != null) {
-            trimmed.substring(matchedPrefix.length).trim()
-        } else {
-            trimmed
-        }
-        if (effectiveQuery.isEmpty()) {
-            return contacts
-        }
-        return rankByLabel(effectiveQuery, contacts) { it.displayName }
-    }
 
     /** True when the user's query explicitly looks like a call/message intent (e.g., "call", "text"). */
     fun isContactIntentQuery(rawQuery: String): Boolean {

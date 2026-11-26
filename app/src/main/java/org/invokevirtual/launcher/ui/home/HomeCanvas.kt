@@ -95,7 +95,6 @@ import org.invokevirtual.launcher.data.DarkMode
 import org.invokevirtual.launcher.data.FolderLayoutMode
 import org.invokevirtual.launcher.data.HomeCanvasState
 import org.invokevirtual.launcher.data.LauncherSettings
-import org.invokevirtual.launcher.data.QuickContact
 import org.invokevirtual.launcher.data.TileShapePreset
 import org.invokevirtual.launcher.data.TileSpan
 import org.invokevirtual.launcher.data.TileTone
@@ -129,7 +128,6 @@ data class HomeCanvasActions(
     val onAddApp: (InstalledApp, TileSpan, TileShapePreset, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _, _ -> },
     val onAddShortcut: (AppShortcutItem, TileSpan, TileShapePreset, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _, _ -> },
     val onRemoveShortcut: (String, String, Long, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
-    val onAddContact: (QuickContact, TileSpan, TileShapePreset, List<CanvasBlock>) -> Unit = { _, _, _, _ -> },
     val onRemoveContact: (String, List<CanvasBlock>) -> Unit = { _, _ -> },
     val onAddSpacer: (String, TileSpan, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _ -> },
     val onAddFolder: (String, List<AppKey>, TileSpan, TileShapePreset, Int?, Int?, List<CanvasBlock>) -> Unit = { _, _, _, _, _, _, _ -> },
@@ -204,8 +202,6 @@ fun HomeCanvas(
     var manageFolderAppsId by rememberSaveable { mutableStateOf<String?>(null) }
     var actionTargetApp by remember { mutableStateOf<InstalledApp?>(null) }
     var actionTargetFromDrawer by remember { mutableStateOf(false) }
-    var actionTargetContact by remember { mutableStateOf<QuickContact?>(null) }
-
     val appsByKey = remember(installedApps) { installedApps.associateBy { it.key } }
     val defaultBlocks = remember(installedApps) { buildDefaultCanvasBlocks(installedApps) }
     val effectiveBlocks = remember(canvasState, defaultBlocks) {
@@ -725,11 +721,6 @@ fun HomeCanvas(
                                 } else {
                                     block
                                 }
-                                val contact = QuickContact(
-                                    lookupKey = block.lookupKey,
-                                    displayName = block.displayName,
-                                    phoneNumber = block.phoneNumber,
-                                )
                                 CanvasContactBlockCard(
                                     block = displayBlock,
                                     showLabel = settings.showLabels,

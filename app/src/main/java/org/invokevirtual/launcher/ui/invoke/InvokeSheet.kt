@@ -105,7 +105,6 @@ import org.invokevirtual.launcher.data.DarkMode
 import org.invokevirtual.launcher.data.HomeCanvasState
 import org.invokevirtual.launcher.data.IconStyle
 import org.invokevirtual.launcher.data.LauncherSettings
-import org.invokevirtual.launcher.data.QuickContact
 import org.invokevirtual.launcher.data.TileSpan
 import org.invokevirtual.launcher.system.AppCatalog
 import org.invokevirtual.launcher.system.AppIconAsset
@@ -204,7 +203,6 @@ internal fun InvokeSheetContent(
     onLaunchShortcut: (AppShortcutItem) -> Unit,
     onTogglePrivateSpace: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    onLongPressQuickContact: (QuickContact) -> Unit = {},
     drawerTransparency: Float = 0f,
     bottomSearchBar: Boolean = false,
 ) {
@@ -1387,11 +1385,6 @@ private fun InvokeSheetSearchPreview() {
         listOf(
             previewApp("YouTube", "org.sample.youtube"),
             previewApp("YouTube Music", "org.sample.ytmusic"),
-        )
-    }
-    val sampleContacts = remember {
-        listOf(
-            QuickContact("k1", "Maya Lin", "+1 555-0142"),
         )
     }
     val state = remember(sampleApps, sampleContacts) {

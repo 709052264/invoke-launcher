@@ -1,7 +1,5 @@
 package org.invokevirtual.launcher.ui.invoke
 
-import org.invokevirtual.launcher.data.QuickContact
-import org.invokevirtual.launcher.data.QuickContactsStore
 import org.invokevirtual.launcher.data.SettingsStore
 import org.invokevirtual.launcher.system.AppKey
 import org.junit.Assert.assertEquals
@@ -91,33 +89,6 @@ class InvokeSearchEngineTest {
         assertNull(InvokeSearchEngine.tryEvaluateMath("1Password"))
         assertNull(InvokeSearchEngine.tryEvaluateMath("42 / 0"))
         assertNull(InvokeSearchEngine.tryEvaluateMath("(10 + 5"))
-    }
-
-    @Test
-    fun `rankContacts supports natural call and text verb prefixes`() {
-        val contacts = listOf(
-            QuickContact("k1", "Maya Lin", "+1 555-0142"),
-            QuickContact("k2", "Alex Rivera", "+1 555-0199"),
-        )
-        assertEquals("Maya Lin", InvokeSearchEngine.rankContacts("call maya", contacts).first().displayName)
-        assertEquals("Alex Rivera", InvokeSearchEngine.rankContacts("text ar", contacts).first().displayName)
-        assertEquals(2, InvokeSearchEngine.rankContacts("call", contacts).size)
-        assertEquals(2, InvokeSearchEngine.rankContacts("call ", contacts).size)
-        assertTrue(InvokeSearchEngine.isContactIntentQuery("call"))
-        assertTrue(InvokeSearchEngine.isContactIntentQuery("msg mom"))
-    }
-
-    @Test
-    fun `quick contacts store serialization round-trips safely`() {
-        val contacts = listOf(
-            QuickContact("key_1", "Maya Lin", "+1 (555) 014-2000"),
-            QuickContact("key_2", "Mom", "+91 98765 43210"),
-        )
-        val encoded = QuickContactsStore.encodeQuickContacts(contacts)
-        val decoded = QuickContactsStore.decodeQuickContacts(encoded)
-        assertEquals(contacts, decoded)
-        assertEquals("ML", decoded[0].initials)
-        assertEquals("M", decoded[1].initials)
     }
 
     @Test

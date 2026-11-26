@@ -96,7 +96,6 @@ class MainActivity : ComponentActivity() {
                 factory = InvokeViewModel.Factory(
                     appCatalog = container.appCatalog,
                     homeCanvasStore = container.homeCanvasStore,
-                    quickContactsStore = container.quickContactsStore,
                     settingsStore = container.settingsStore,
                 ),
             )
@@ -600,7 +599,6 @@ class MainActivity : ComponentActivity() {
                         onInvokeClearQuery = invokeViewModel::clearQuery,
                         onInvokeSelectFilter = invokeViewModel::selectFilter,
                         onTogglePrivateSpace = invokeViewModel::togglePrivateSpace,
-                        onRemoveQuickContact = invokeViewModel::removeQuickContact,
                         onTogglePinInDrawer = { appKey ->
                             scope.launch { container.settingsStore.togglePinnedDrawerApp(appKey) }
                         },

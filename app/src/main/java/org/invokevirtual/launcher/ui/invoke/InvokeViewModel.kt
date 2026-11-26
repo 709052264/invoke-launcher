@@ -17,8 +17,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.invokevirtual.launcher.data.HomeCanvasState
 import org.invokevirtual.launcher.data.HomeCanvasStore
-import org.invokevirtual.launcher.data.QuickContact
-import org.invokevirtual.launcher.data.QuickContactsStore
 import org.invokevirtual.launcher.data.SettingsStore
 import org.invokevirtual.launcher.system.AppCatalog
 import org.invokevirtual.launcher.system.AppKey
@@ -44,8 +42,6 @@ data class InvokeUiState(
     val pinnedDrawerApps: List<InstalledApp> = emptyList(),
     val pinnedDrawerKeys: Set<AppKey> = emptySet(),
     val matchingShortcuts: List<AppShortcutItem> = emptyList(),
-    val quickContacts: List<QuickContact> = emptyList(),
-    val matchingContacts: List<QuickContact> = emptyList(),
     val showContactPickerPromptInSearch: Boolean = false,
     val mathResult: MathEvalResult? = null,
     val homeCanvas: HomeCanvasState = HomeCanvasState(),
@@ -63,7 +59,6 @@ data class InvokeUiState(
 class InvokeViewModel(
     private val appCatalog: AppCatalog,
     homeCanvasStore: HomeCanvasStore,
-    private val quickContactsStore: QuickContactsStore,
     settingsStore: SettingsStore,
 ) : ViewModel() {
 
@@ -88,7 +83,6 @@ class InvokeViewModel(
         homeCanvasStore.canvasState,
         shortcutMatches,
         appCatalog.privateSpace,
-        quickContactsStore.contacts,
         pinnedDrawerKeysFlow,
     ) { values ->
         val query = values[0] as String
@@ -100,9 +94,7 @@ class InvokeViewModel(
         val shortcuts = values[4] as List<AppShortcutItem>
         val privateSpace = values[5] as PrivateSpaceState
         @Suppress("UNCHECKED_CAST")
-        val quickContacts = values[6] as List<QuickContact>
 
-        @Suppress("UNCHECKED_CAST")
         val pinnedDrawerOrder = values[7] as List<AppKey>
 
         val appsByKey = allApps.associateBy { it.key }
@@ -134,11 +126,6 @@ class InvokeViewModel(
         } else {
             InvokeSearchEngine.groupAppsByLetter(filteredByCategory)
         }
-        val matchingContacts = if (isSearching) {
-            InvokeSearchEngine.rankContacts(trimmed, quickContacts)
-        } else {
-            emptyList()
-        }
         val contactIntent = isSearching && InvokeSearchEngine.isContactIntentQuery(trimmed)
 
         InvokeUiState(
@@ -151,7 +138,6 @@ class InvokeViewModel(
             pinnedDrawerApps = pinnedDrawerApps,
             pinnedDrawerKeys = pinnedDrawerKeys,
             matchingShortcuts = if (isSearching) shortcuts else emptyList(),
-            quickContacts = quickContacts,
             matchingContacts = matchingContacts,
             showContactPickerPromptInSearch = contactIntent,
             mathResult = if (isSearching) InvokeSearchEngine.tryEvaluateMath(trimmed) else null,
@@ -176,20 +162,13 @@ class InvokeViewModel(
         appCatalog.setPrivateSpaceLocked(lock)
     }
 
-    fun removeQuickContact(lookupKey: String) {
-        viewModelScope.launch {
-            quickContactsStore.removeContact(lookupKey)
-        }
-    }
-
     class Factory(
         private val appCatalog: AppCatalog,
         private val homeCanvasStore: HomeCanvasStore,
-        private val quickContactsStore: QuickContactsStore,
         private val settingsStore: SettingsStore,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            InvokeViewModel(appCatalog, homeCanvasStore, quickContactsStore, settingsStore) as T
+            InvokeViewModel(appCatalog, homeCanvasStore, settingsStore) as T
     }
 }
