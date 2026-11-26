@@ -1144,38 +1144,28 @@ internal fun CustomizationStudioContent(
                 }
             }
 
-            item(key = "icons_motion") {
-                StudioSection(title = "Icons & Motion") {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ConnectedToggleSelector(
-                            options = IconStyle.entries,
-                            selected = settings.iconStyle,
-                            labelOf = { it.label },
-                            onSelect = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                actions.onSelectIconStyle(it)
-                            },
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            StudioSwitchRow(
-                                title = "Show App Labels",
-                                subtitle = "Display app titles beneath Home Canvas icons",
-                                checked = settings.showLabels,
-                                shape = InvokeShapes.segmentedItemShape(0, 2),
-                                onCheckedChange = actions.onToggleShowLabels,
-                            )
-                            StudioSwitchRow(
-                                title = "Expressive Motion",
-                                subtitle = "Spring shape morphs · off enables Calm mode",
-                                checked = settings.expressiveMotion,
-                                shape = InvokeShapes.segmentedItemShape(1, 2),
-                                onCheckedChange = actions.onToggleExpressiveMotion,
+            item(key = "icon_style") {
+                StudioSection(title = "Icons & Motion") { // 注意：如果你原来的 title 是 Icon Style，请保留原来的
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        items(IconStyle.entries) { style ->
+                            FilterChip(
+                                selected = settings.iconStyle == style,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    actions.onSelectIconStyle(style)
+                                },
+                                label = {
+                                    Text(
+                                        text = style.label, // 使用 label 而不是 name
+                                        maxLines = 1
+                                    )
+                                }
                             )
                         }
-                        NotificationBadgeControls(
-                            style = settings.badgeStyle,
-                            onSelect = actions.onSelectBadgeStyle,
-                        )
                     }
                 }
             }
