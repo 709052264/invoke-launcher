@@ -126,7 +126,14 @@ fun InvokeBottomDock(
         when (dockStyle) {
             DockStyle.TOOLBAR -> {
                 HorizontalFloatingToolbar(
-                    // ... 保持原样 ...
+                    expanded = true,
+                    modifier = Modifier
+                        .align(if (showModeButton) Alignment.BottomStart else Alignment.BottomCenter)
+                        .padding(bottom = 12.dp),
+                    colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
+                        toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+                        toolbarContentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
                 ) {
                     quickActions.forEach { action ->
                         DockActionSlotButton(
@@ -140,7 +147,7 @@ fun InvokeBottomDock(
                         Spacer(Modifier.width(4.dp))
                     }
 
-                    // 👇 新增这个 if 判断 👇
+                    // ✅ 正确的 if 语法包裹
                     if (showModeButton) {
                         InvokeSearchPillButton(
                             searchCd = searchCd,
@@ -151,21 +158,29 @@ fun InvokeBottomDock(
             }
 
             DockStyle.MINIMAL_SEARCH -> {
-                if (showModeButton) { // 👇 整体包裹
+                // ✅ 正确的 if 语法包裹
+                if (showModeButton) {
                     Surface(
                         shape = RoundedCornerShape(percent = 50),
-                        // ... 保持原样 ...
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        tonalElevation = 4.dp,
+                        modifier = Modifier
+                            .align(if (showModeButton) Alignment.BottomStart else Alignment.BottomCenter)
+                            .padding(bottom = 12.dp),
                     ) {
                         Row(modifier = Modifier.padding(6.dp)) {
                             InvokeSearchPillButton(
                                 searchCd = searchCd,
                                 onClick = onInvokeSearchClick,
-                        )
+                            )
+                        }
                     }
                 }
             }
         }
 
+        // 右下角的悬浮菜单按钮（原样保留）
         if (showModeButton) {
             FloatingActionButtonMenu(
                 expanded = modeMenuExpanded,
