@@ -266,7 +266,7 @@ internal fun InvokeSheetContent(
         browsePinnedItemCount,
     ) {
         buildMap {
-            var itemIndex = browseQuickPeopleItemCount + browsePinnedItemCount
+            var itemIndex = browsePinnedItemCount
             for (section in uiState.sections) {
                 put(section.letter, itemIndex)
                 itemIndex += 1 + section.apps.size
