@@ -148,9 +148,6 @@ fun InvokeSheet(
     onLongPressApp: (InstalledApp) -> Unit,
     onLaunchShortcut: (AppShortcutItem) -> Unit,
     onTogglePrivateSpace: (Boolean) -> Unit,
-    onSavePickedContacts: (List<QuickContact>) -> Unit,
-    onLongPressQuickContact: (QuickContact) -> Unit = {},
-    showQuickPeople: Boolean = true,
     drawerTransparency: Float = 0f,
     bottomSearchBar: Boolean = false,
 ) {
@@ -174,7 +171,6 @@ fun InvokeSheet(
             uiState = uiState,
             autoFocusSearch = autoFocusSearch,
             iconStyle = iconStyle,
-            showQuickPeople = showQuickPeople,
             drawerTransparency = clampedTransparency,
             bottomSearchBar = bottomSearchBar,
             appCatalog = appCatalog,
@@ -212,7 +208,6 @@ internal fun InvokeSheetContent(
     onSavePickedContacts: (List<QuickContact>) -> Unit,
     modifier: Modifier = Modifier,
     onLongPressQuickContact: (QuickContact) -> Unit = {},
-    showQuickPeople: Boolean = true,
     drawerTransparency: Float = 0f,
     bottomSearchBar: Boolean = false,
 ) {
@@ -259,14 +254,6 @@ internal fun InvokeSheetContent(
         }
     }
 
-    val showQuickPeopleInBrowse = showQuickPeople &&
-        !uiState.isSearching &&
-        uiState.activeFilter == InvokeFilter.ALL
-    val browseQuickPeopleItemCount = when {
-        !showQuickPeopleInBrowse -> 0
-        uiState.quickContacts.isEmpty() -> 1
-        else -> 1 + uiState.quickContacts.size
-    }
     val showPinnedSectionInBrowse = !uiState.isSearching &&
             uiState.activeFilter == InvokeFilter.ALL &&
             uiState.pinnedDrawerApps.isNotEmpty()
@@ -274,20 +261,6 @@ internal fun InvokeSheetContent(
         1 + uiState.pinnedDrawerApps.size
     } else {
         0
-    }
-
-    val sectionStartIndices = remember(
-        uiState.sections,
-        browseQuickPeopleItemCount,
-        browsePinnedItemCount,
-    ) {
-        buildMap {
-            var itemIndex = browseQuickPeopleItemCount + browsePinnedItemCount
-            for (section in uiState.sections) {
-                put(section.letter, itemIndex)
-                itemIndex += 1 + section.apps.size
-            }
-        }
     }
 
     val scrubberLetters = remember(uiState.sections) {
@@ -426,9 +399,6 @@ internal fun InvokeSheetContent(
             ) {
                 if (uiState.isSearching) {
                     val hasMath = uiState.mathResult != null
-                    val hasContacts = showQuickPeople && uiState.matchingContacts.isNotEmpty()
-                    val hasContactPrompt =
-                        showQuickPeople && uiState.showContactPickerPromptInSearch
                     val hasShortcuts = uiState.matchingShortcuts.isNotEmpty()
                     val hasApps = uiState.rankedSearchResults.isNotEmpty()
 
@@ -502,58 +472,7 @@ internal fun InvokeSheetContent(
                                 )
                             }
                         }
-
-                        if (hasContacts) {
-                            if (hasApps || hasShortcuts || hasMath) {
-                                item(key = "people_search_spacer") {
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                }
-                            }
-                            itemsIndexed(
-                                items = uiState.matchingContacts,
-                                key = { _, contact -> "search_contact_${contact.lookupKey}" },
-                            ) { index, contact ->
-                                QuickContactRow(
-                                    contact = contact,
-                                    index = uiState.matchingContacts.size - 1 - index,
-                                    count = uiState.matchingContacts.size,
-                                    isPinned = uiState.homeCanvas.containsContact(contact.lookupKey),
-                                    cardAlpha = cardAlpha,
-                                    onCall = { ContactsPickerHelper.dialContact(context, contact) },
-                                    onMessage = {
-                                        ContactsPickerHelper.messageContact(
-                                            context,
-                                            contact
-                                        )
-                                    },
-                                    onLongClick = { onLongPressQuickContact(contact) },
-                                )
-                            }
-                            item(key = "people_search_header") {
-                                QuickPeopleHeaderRow(
-                                    count = uiState.matchingContacts.size,
-                                    onAddClick = launchContactsPicker,
-                                    modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
-                                )
-                            }
-                        } else if (hasContactPrompt) {
-                            item(key = "people_search_picker_prompt") {
-                                QuickPeoplePickerBanner(
-                                    subtitle = if (supportsAndroid17Picker) {
-                                        "Android 17 Contacts Picker · no permission needed"
-                                    } else {
-                                        "Pick favorite contacts for 1-tap call & text"
-                                    },
-                                    cardAlpha = cardAlpha,
-                                    onPickClick = launchContactsPicker,
-                                    modifier = Modifier.padding(
-                                        bottom = if (hasApps || hasShortcuts || hasMath) 10.dp else 0.dp,
-                                    ),
-                                )
-                            }
-                        }
-
-                        if (!hasApps && !hasMath && !hasShortcuts && !hasContacts && !hasContactPrompt) {
+                        if (!hasApps && !hasMath && !hasShortcuts && !hasContactPrompt) {
                             item(key = "empty_search") {
                                 EmptySearchCard(
                                     query = uiState.query.trim(),
@@ -567,52 +486,6 @@ internal fun InvokeSheetContent(
                                 InlineMathCard(
                                     result = math,
                                     cardAlpha = cardAlpha,
-                                    modifier = Modifier.padding(bottom = 10.dp),
-                                )
-                            }
-                        }
-
-                        if (hasContacts) {
-                            item(key = "people_search_header") {
-                                QuickPeopleHeaderRow(
-                                    count = uiState.matchingContacts.size,
-                                    onAddClick = launchContactsPicker,
-                                    modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
-                                )
-                            }
-                            itemsIndexed(
-                                items = uiState.matchingContacts,
-                                key = { _, contact -> "search_contact_${contact.lookupKey}" },
-                            ) { index, contact ->
-                                QuickContactRow(
-                                    contact = contact,
-                                    index = index,
-                                    count = uiState.matchingContacts.size,
-                                    isPinned = uiState.homeCanvas.containsContact(contact.lookupKey),
-                                    cardAlpha = cardAlpha,
-                                    onCall = { ContactsPickerHelper.dialContact(context, contact) },
-                                    onMessage = {
-                                        ContactsPickerHelper.messageContact(
-                                            context,
-                                            contact
-                                        )
-                                    },
-                                    onLongClick = { onLongPressQuickContact(contact) },
-                                )
-                            }
-                            item(key = "people_search_spacer") {
-                                Spacer(modifier = Modifier.height(10.dp))
-                            }
-                        } else if (hasContactPrompt) {
-                            item(key = "people_search_picker_prompt") {
-                                QuickPeoplePickerBanner(
-                                    subtitle = if (supportsAndroid17Picker) {
-                                        "Android 17 Contacts Picker · no permission needed"
-                                    } else {
-                                        "Pick favorite contacts for 1-tap call & text"
-                                    },
-                                    cardAlpha = cardAlpha,
-                                    onPickClick = launchContactsPicker,
                                     modifier = Modifier.padding(bottom = 10.dp),
                                 )
                             }
@@ -682,46 +555,6 @@ internal fun InvokeSheetContent(
                         }
                     }
                 } else {
-                    if (showQuickPeopleInBrowse) {
-                        if (uiState.quickContacts.isEmpty()) {
-                            item(key = "quick_people_banner") {
-                                QuickPeoplePickerBanner(
-                                    subtitle = if (supportsAndroid17Picker) {
-                                        "Android 17 Contacts Picker · zero permissions"
-                                    } else {
-                                        "Pick favorite people for 1-tap call & text"
-                                    },
-                                    cardAlpha = cardAlpha,
-                                    onPickClick = launchContactsPicker,
-                                    modifier = Modifier.padding(bottom = 8.dp),
-                                )
-                            }
-                        } else {
-                            item(key = "quick_people_header") {
-                                QuickPeopleHeaderRow(
-                                    count = uiState.quickContacts.size,
-                                    onAddClick = launchContactsPicker,
-                                    modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
-                                )
-                            }
-                            itemsIndexed(
-                                items = uiState.quickContacts,
-                                key = { _, contact -> "browse_contact_${contact.lookupKey}" },
-                            ) { index, contact ->
-                                QuickContactRow(
-                                    contact = contact,
-                                    index = index,
-                                    count = uiState.quickContacts.size,
-                                    isPinned = uiState.homeCanvas.containsContact(contact.lookupKey),
-                                    cardAlpha = cardAlpha,
-                                    onCall = { ContactsPickerHelper.dialContact(context, contact) },
-                                    onMessage = { ContactsPickerHelper.messageContact(context, contact) },
-                                    onLongClick = { onLongPressQuickContact(contact) },
-                                )
-                            }
-                        }
-                    }
-
                     if (isPinnedFilterBrowse) {
                         if (uiState.pinnedDrawerApps.isEmpty()) {
                             item(key = "empty_pinned") {
