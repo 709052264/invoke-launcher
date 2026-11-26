@@ -263,7 +263,6 @@ internal fun InvokeSheetContent(
 
     val sectionStartIndices = remember(
         uiState.sections,
-        browseQuickPeopleItemCount,
         browsePinnedItemCount,
     ) {
         buildMap {
