@@ -354,7 +354,7 @@ private fun DockActionSlotButton(
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .size(60.dp)
+            .size(66.dp)
             .clip(CircleShape)
             .semantics { contentDescription = action.label }
             .combinedClickable(
@@ -366,7 +366,7 @@ private fun DockActionSlotButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        NotificationBadgeBox(apps = listOfNotNull(action.app?.key), iconSize = 48.dp) {
+        NotificationBadgeBox(apps = listOfNotNull(action.app?.key), iconSize = 58.dp) {
             when {
                 iconAsset != null && (iconStyle == IconStyle.FULL_COLOR || iconAsset!!.monochrome == null) -> {
                     Image(
@@ -374,7 +374,7 @@ private fun DockActionSlotButton(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(58.dp)
                             .clip(CircleShape),
                     )
                 }
