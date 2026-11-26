@@ -1117,7 +1117,6 @@ fun HomeCanvas(
             uiState = invokeUiState,
             autoFocusSearch = invokeSheetAutoFocus,
             iconStyle = settings.iconStyle,
-            showQuickPeople = settings.showQuickPeople,
             drawerTransparency = settings.drawerTransparency,
             bottomSearchBar = settings.bottomSearchBar,
             appCatalog = appCatalog,
@@ -1402,38 +1401,6 @@ fun HomeCanvas(
             onUninstall = {
                 closeInvokeSheet()
                 appCatalog?.uninstallApp(targetApp)
-            },
-        )
-    }
-
-    actionTargetContact?.let { targetContact ->
-        val existingContactBlock = effectiveBlocks
-            .filterIsInstance<CanvasBlock.ContactTile>()
-            .firstOrNull { it.lookupKey == targetContact.lookupKey }
-        val isInQuickPeople = invokeUiState.quickContacts.any { it.lookupKey == targetContact.lookupKey }
-
-        QuickContactActionSheet(
-            contact = targetContact,
-            pinnedBlock = existingContactBlock,
-            isInQuickPeople = isInQuickPeople,
-            onDismiss = { actionTargetContact = null },
-            onCall = { ContactsPickerHelper.dialContact(context, targetContact) },
-            onMessage = { ContactsPickerHelper.messageContact(context, targetContact) },
-            onPinToHome = { span ->
-                canvasActions.onAddContact(targetContact, span, TileShapePreset.CIRCLE, effectiveBlocks)
-            },
-            onCustomizeOnHome = {
-                if (existingContactBlock != null) {
-                    closeInvokeSheet()
-                    isEditMode = true
-                    selectedBlockId = existingContactBlock.id
-                }
-            },
-            onUnpinFromHome = {
-                canvasActions.onRemoveContact(targetContact.lookupKey, effectiveBlocks)
-            },
-            onRemoveFromQuickPeople = {
-                onRemoveQuickContact(targetContact.lookupKey)
             },
         )
     }
