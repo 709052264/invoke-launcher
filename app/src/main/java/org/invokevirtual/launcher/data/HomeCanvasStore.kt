@@ -563,31 +563,6 @@ class HomeCanvasStore(private val context: Context) {
         }
     }
 
-    suspend fun addContactTile(
-        fallbackDefaults: List<CanvasBlock>,
-        span: TileSpan = TileSpan.COMPACT,
-        shape: TileShapePreset = TileShapePreset.CIRCLE,
-        tone: TileTone = TileTone.TERTIARY,
-        customBgArgb: Int? = null,
-    ) {
-        updateBlocks(fallbackDefaults) { list ->
-            if (list.any { it is CanvasBlock.ContactTile && it.lookupKey == contact.lookupKey }) {
-                list
-            } else {
-                list + CanvasBlock.ContactTile(
-                    id = "ct_${UUID.randomUUID().toString().take(8)}",
-                    lookupKey = contact.lookupKey,
-                    displayName = contact.displayName,
-                    phoneNumber = contact.phoneNumber,
-                    span = span,
-                    shape = shape,
-                    tone = tone,
-                    customBgArgb = customBgArgb,
-                )
-            }
-        }
-    }
-
     suspend fun removeContactTile(
         lookupKey: String,
         fallbackDefaults: List<CanvasBlock>,
@@ -1075,7 +1050,6 @@ class HomeCanvasStore(private val context: Context) {
                     when (block) {
                         is CanvasBlock.AppTile -> block.copy(span = block.span.next())
                         is CanvasBlock.ShortcutTile -> block.copy(span = block.span.next())
-                        is CanvasBlock.ContactTile -> block.copy(span = block.span.next())
                         is CanvasBlock.SpacerBlock -> block.copy(span = block.span.next())
                         is CanvasBlock.FolderTile -> block.copy(span = block.span.next())
                         is CanvasBlock.WidgetBlock -> block.copy(heightTier = block.heightTier.next())
