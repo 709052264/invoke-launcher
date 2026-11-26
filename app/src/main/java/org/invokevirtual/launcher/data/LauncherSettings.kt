@@ -103,8 +103,6 @@ enum class IconStyle(val label: String) {
     FULL_COLOR("Full Color"),
     SYSTEM("System Default"),
     CIRCLE("Circle"),
-    SQUIRCLE("Squircle"),
-    ROUNDED_SQUARE("Rounded Square"),
     // ... add more as needed
 }
 
