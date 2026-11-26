@@ -261,6 +261,20 @@ internal fun InvokeSheetContent(
         0
     }
 
+    val sectionStartIndices = remember(
+        uiState.sections,
+        browseQuickPeopleItemCount,
+        browsePinnedItemCount,
+    ) {
+        buildMap {
+            var itemIndex = browseQuickPeopleItemCount + browsePinnedItemCount
+            for (section in uiState.sections) {
+                put(section.letter, itemIndex)
+                itemIndex += 1 + section.apps.size
+            }
+        }
+    }
+    
     val scrubberLetters = remember(uiState.sections) {
         uiState.sections.map { it.letter }
     }
