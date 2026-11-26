@@ -1387,14 +1387,13 @@ private fun InvokeSheetSearchPreview() {
             previewApp("YouTube Music", "org.sample.ytmusic"),
         )
     }
-    val state = remember(sampleApps, sampleContacts) {
+    val state = remember(sampleApps) {
         InvokeUiState(
             query = "145 * 1.18",
             activeFilter = InvokeFilter.ALL,
             hasWorkApps = false,
             isSearching = true,
             rankedSearchResults = sampleApps,
-            matchingContacts = sampleContacts,
             mathResult = InvokeSearchEngine.tryEvaluateMath("145 * 1.18"),
         )
     }

@@ -138,7 +138,6 @@ class InvokeViewModel(
             pinnedDrawerApps = pinnedDrawerApps,
             pinnedDrawerKeys = pinnedDrawerKeys,
             matchingShortcuts = if (isSearching) shortcuts else emptyList(),
-            matchingContacts = matchingContacts,
             showContactPickerPromptInSearch = contactIntent,
             mathResult = if (isSearching) InvokeSearchEngine.tryEvaluateMath(trimmed) else null,
             homeCanvas = homeCanvas,

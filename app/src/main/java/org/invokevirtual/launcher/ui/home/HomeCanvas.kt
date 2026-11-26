@@ -261,7 +261,6 @@ fun HomeCanvas(
     NavigationBackHandler(
         state = backState,
         isBackEnabled = actionTargetApp != null ||
-            actionTargetContact != null ||
                 manageFolderAppsId != null ||
                 openFolderId != null ||
             addAppSheetOpen ||
@@ -276,7 +275,6 @@ fun HomeCanvas(
                     actionTargetApp = null
                     actionTargetFromDrawer = false
                 }
-                actionTargetContact != null -> actionTargetContact = null
                 manageFolderAppsId != null -> manageFolderAppsId = null
                 openFolderId != null -> openFolderId = null
                 addAppSheetOpen -> addAppSheetOpen = false
@@ -1125,7 +1123,6 @@ fun HomeCanvas(
                 appCatalog?.startShortcut(shortcut)
             },
             onTogglePrivateSpace = onTogglePrivateSpace,
-            },
         )
     }
 
