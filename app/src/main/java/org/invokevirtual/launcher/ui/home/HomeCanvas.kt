@@ -115,7 +115,6 @@ import org.invokevirtual.launcher.ui.components.AppActionSheet
 import org.invokevirtual.launcher.ui.invoke.InvokeFilter
 import org.invokevirtual.launcher.ui.invoke.InvokeSheet
 import org.invokevirtual.launcher.ui.invoke.InvokeUiState
-import org.invokevirtual.launcher.ui.invoke.QuickContactActionSheet
 import org.invokevirtual.launcher.ui.studio.CustomizationStudioSheet
 import org.invokevirtual.launcher.ui.studio.StudioActions
 import org.invokevirtual.launcher.ui.theme.InvokeIcons
@@ -1138,8 +1137,6 @@ fun HomeCanvas(
             },
             onTogglePrivateSpace = onTogglePrivateSpace,
             onSavePickedContacts = onSavePickedContacts,
-            onLongPressQuickContact = { contact ->
-                actionTargetContact = contact
             },
         )
     }
@@ -1389,10 +1386,6 @@ fun HomeCanvas(
             onLaunchShortcut = { shortcut ->
                 closeInvokeSheet()
                 appCatalog?.startShortcut(shortcut)
-            },
-            onLaunchFloating = {
-                closeInvokeSheet()
-                appCatalog?.launchInFloatingWindow(targetApp)
             },
             onOpenAppInfo = {
                 closeInvokeSheet()
