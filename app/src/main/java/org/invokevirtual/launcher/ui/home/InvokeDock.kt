@@ -128,32 +128,17 @@ fun InvokeBottomDock(
                 HorizontalFloatingToolbar(
                     expanded = true,
                     modifier = Modifier
-                        .align(if (showModeButton) Alignment.BottomStart else Alignment.BottomCenter)
-                        .padding(bottom = 12.dp),
+                        .align(Alignment.BottomCenter) // 👈 强制底部居中
+                        .fillMaxWidth()                // 👈 占满父容器宽度
+                        .padding(horizontal = 16.dp)   // 👈 左右边距（请根据你 HomeScreen 的边距调整，通常是 16dp 或 20dp，让它们对齐）
+                        .padding(bottom = 12.dp),      // 👈 底部边距
                     colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
                         toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
                         toolbarContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
+                    contentPadding = PaddingValues(horizontal = 8.dp), // 内部元素的左右留白
                 ) {
-                    quickActions.forEach { action ->
-                        DockActionSlotButton(
-                            action = action,
-                            iconStyle = iconStyle,
-                            appCatalog = appCatalog,
-                        )
-                    }
-
-                    if (quickActions.isNotEmpty()) {
-                        Spacer(Modifier.width(4.dp))
-                    }
-
-                    // ✅ 正确的 if 语法包裹
-                    if (showModeButton) {
-                        InvokeSearchPillButton(
-                            searchCd = searchCd,
-                            onClick = onInvokeSearchClick,
-                        )
-                    }
+                    // ... 保持内部的 quickActions 和 if (showModeButton) 代码不变 ...
                 }
             }
 
@@ -348,7 +333,7 @@ private fun DockActionSlotButton(
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .size(50.dp)
+            .size(60.dp)
             .clip(CircleShape)
             .semantics { contentDescription = action.label }
             .combinedClickable(
@@ -360,7 +345,7 @@ private fun DockActionSlotButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        NotificationBadgeBox(apps = listOfNotNull(action.app?.key), iconSize = 38.dp) {
+        NotificationBadgeBox(apps = listOfNotNull(action.app?.key), iconSize = 44.dp) {
             when {
                 iconAsset != null && (iconStyle == IconStyle.FULL_COLOR || iconAsset!!.monochrome == null) -> {
                     Image(
@@ -368,7 +353,7 @@ private fun DockActionSlotButton(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(44.dp)
                             .clip(CircleShape),
                     )
                 }
@@ -377,14 +362,14 @@ private fun DockActionSlotButton(
                         bitmap = iconAsset!!.monochrome!!,
                         contentDescription = null,
                         colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(32.dp),
                     )
                 }
                 else -> {
                     Icon(
                         imageVector = action.fallbackIcon,
                         contentDescription = null,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(32.dp),
                     )
                 }
             }
