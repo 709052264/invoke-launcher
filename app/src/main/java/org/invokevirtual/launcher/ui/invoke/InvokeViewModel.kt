@@ -126,7 +126,6 @@ class InvokeViewModel(
         } else {
             InvokeSearchEngine.groupAppsByLetter(filteredByCategory)
         }
-        val contactIntent = isSearching && InvokeSearchEngine.isContactIntentQuery(trimmed)
 
         InvokeUiState(
             query = query,
@@ -138,7 +137,6 @@ class InvokeViewModel(
             pinnedDrawerApps = pinnedDrawerApps,
             pinnedDrawerKeys = pinnedDrawerKeys,
             matchingShortcuts = if (isSearching) shortcuts else emptyList(),
-            showContactPickerPromptInSearch = contactIntent,
             mathResult = if (isSearching) InvokeSearchEngine.tryEvaluateMath(trimmed) else null,
             homeCanvas = homeCanvas,
             privateSpace = privateSpace,

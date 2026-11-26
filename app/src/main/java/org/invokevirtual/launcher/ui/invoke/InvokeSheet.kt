@@ -213,30 +213,6 @@ internal fun InvokeSheetContent(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    val supportsAndroid17Picker = remember(context, inPreview) {
-        !inPreview && ContactsPickerHelper.isAndroid17PickerSupported(context)
-    }
-
-    val contactsPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val sessionUri = result.data?.data ?: return@rememberLauncherForActivityResult
-            coroutineScope.launch {
-                val picked = ContactsPickerHelper.parsePickerResult(context, sessionUri)
-            }
-        }
-    }
-
-    val launchContactsPicker: () -> Unit = {
-        if (!inPreview) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            runCatching {
-                contactsPickerLauncher.launch(ContactsPickerHelper.createPickerIntent(context))
-            }
-        }
-    }
-
     LaunchedEffect(autoFocusSearch) {
         listState.scrollToItem(0)
         if (autoFocusSearch && !inPreview) {
