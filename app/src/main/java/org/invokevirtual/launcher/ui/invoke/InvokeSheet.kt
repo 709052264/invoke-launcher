@@ -1145,7 +1145,6 @@ private fun InvokeAppRow(
                     iconStyle = iconStyle,
                     shape = when (iconStyle) {
                         IconStyle.CIRCLE -> CircleShape
-                        IconStyle.SYSTEM -> RoundedCornerShape(percent = 22)
                         else -> RoundedCornerShape(16.dp) // 原来的默认圆角
                     },
                     size = 48.dp,
