@@ -368,7 +368,7 @@ private fun DockActionSlotButton(
     ) {
         NotificationBadgeBox(apps = listOfNotNull(action.app?.key), iconSize = 55.dp) {
             when {
-                iconAsset != null && (iconStyle == IconStyle.THEMED_MONOCHROME || iconAsset!!.monochrome == null) -> {
+                iconAsset != null && (iconStyle == IconStyle.CIRCLE || iconAsset!!.monochrome == null) -> {
                     Image(
                         bitmap = iconAsset!!.fullColor,
                         contentDescription = null,
