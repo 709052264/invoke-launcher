@@ -1,5 +1,7 @@
 package org.invokevirtual.launcher.ui.invoke
 
+import androidx.compose.foundation.shape.CircleShape
+import org.invokevirtual.launcher.ui.home.ShapedAppIcon
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -1136,21 +1138,22 @@ private fun InvokeAppRow(
             },
         leadingContent = {
             NotificationBadgeBox(apps = listOf(app.key), iconSize = 48.dp) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    TileIconGlyph(
-                        iconAsset = iconAsset,
-                        fallbackGlyph = InvokeIcons.Apps,
-                        iconStyle = iconStyle,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
+                // 👇 直接使用桌面同款的 ShapedAppIcon
+                ShapedAppIcon(
+                    iconAsset = iconAsset,
+                    fallbackGlyph = InvokeIcons.Apps,
+                    iconStyle = iconStyle,
+                    shape = when (iconStyle) {
+                        IconStyle.CIRCLE -> CircleShape
+                        IconStyle.SQUIRCLE -> RoundedCornerShape(percent = 30)
+                        IconStyle.ROUNDED_SQUARE -> RoundedCornerShape(percent = 20)
+                        IconStyle.SYSTEM -> RoundedCornerShape(percent = 22)
+                        else -> RoundedCornerShape(16.dp) // 原来的默认圆角
+                    },
+                    size = 48.dp,
+                    monochromeBg = MaterialTheme.colorScheme.primaryContainer,
+                    monochromeFg = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
             }
         },
         supportingContent = if (app.isWorkProfile) {
