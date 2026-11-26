@@ -1142,8 +1142,7 @@ internal fun ShapedAppIcon(
     monochromeFg: Color,
     forceContainerBg: Boolean = false,
 ) {
-    val useFullColor = iconAsset != null &&
-        (iconStyle == IconStyle.FULL_COLOR || iconAsset.monochrome == null)
+    val useFullColor = iconAsset != null && iconStyle != IconStyle.THEMED_MONOCHROME
 
     if (useFullColor && !forceContainerBg) {
         Box(
