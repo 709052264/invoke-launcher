@@ -142,7 +142,6 @@ data class StudioActions(
     val onToggleShowDockModeButton: (Boolean) -> Unit = {},
     val onSetDockApps: (List<AppKey>) -> Unit = {},
     val onSetDrawerTransparency: (Float) -> Unit = {},
-    val onToggleShowQuickPeople: (Boolean) -> Unit = {},
     val onToggleBottomSearchBar: (Boolean) -> Unit = {},
     val onToggleDoubleTapToSleep: (Boolean) -> Unit = {},
     val onSelectBadgeStyle: (BadgeStyle) -> Unit = {},
@@ -971,13 +970,6 @@ internal fun CustomizationStudioContent(
                             checked = settings.bottomSearchBar,
                             shape = InvokeShapes.segmentedItemShape(0, 3),
                             onCheckedChange = actions.onToggleBottomSearchBar,
-                        )
-                        StudioSwitchRow(
-                            title = "Quick People",
-                            subtitle = "Show 1-tap call & text favorites in the drawer",
-                            checked = settings.showQuickPeople,
-                            shape = InvokeShapes.segmentedItemShape(1, 3),
-                            onCheckedChange = actions.onToggleShowQuickPeople,
                         )
                         Surface(
                             shape = InvokeShapes.segmentedItemShape(2, 3),

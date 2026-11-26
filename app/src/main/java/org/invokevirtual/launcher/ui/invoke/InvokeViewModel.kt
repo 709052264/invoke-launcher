@@ -176,13 +176,6 @@ class InvokeViewModel(
         appCatalog.setPrivateSpaceLocked(lock)
     }
 
-    fun savePickedContacts(contacts: List<QuickContact>) {
-        if (contacts.isEmpty()) return
-        viewModelScope.launch {
-            quickContactsStore.upsertContacts(contacts)
-        }
-    }
-
     fun removeQuickContact(lookupKey: String) {
         viewModelScope.launch {
             quickContactsStore.removeContact(lookupKey)

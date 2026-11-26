@@ -242,9 +242,6 @@ class MainActivity : ComponentActivity() {
                     onSetDrawerTransparency = { transparency ->
                         scope.launch { container.settingsStore.setDrawerTransparency(transparency) }
                     },
-                    onToggleShowQuickPeople = { enabled ->
-                        scope.launch { container.settingsStore.setShowQuickPeople(enabled) }
-                    },
                     onToggleBottomSearchBar = { enabled ->
                         scope.launch { container.settingsStore.setBottomSearchBar(enabled) }
                     },

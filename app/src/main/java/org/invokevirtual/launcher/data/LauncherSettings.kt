@@ -143,7 +143,6 @@ data class LauncherSettings(
     val dockApps: List<AppKey> = emptyList(),
     val pinnedDrawerApps: List<AppKey> = emptyList(),
     val drawerTransparency: Float = 0f,
-    val showQuickPeople: Boolean = true,
     val bottomSearchBar: Boolean = false,
     val doubleTapToSleep: Boolean = false,
     val badgeStyle: BadgeStyle = BadgeStyle.OFF,
@@ -248,7 +247,6 @@ class SettingsStore(private val context: Context) {
             dockApps = decodeDockApps(prefs[Keys.DOCK_APPS].orEmpty()),
             pinnedDrawerApps = decodeAppKeys(prefs[Keys.PINNED_DRAWER_APPS].orEmpty()),
             drawerTransparency = (prefs[Keys.DRAWER_TRANSPARENCY] ?: 0f).coerceIn(0f, 1f),
-            showQuickPeople = prefs[Keys.SHOW_QUICK_PEOPLE] ?: true,
             bottomSearchBar = prefs[Keys.BOTTOM_SEARCH_BAR] ?: false,
             doubleTapToSleep = prefs[Keys.DOUBLE_TAP_TO_SLEEP] ?: false,
             badgeStyle = prefs[Keys.BADGE_STYLE]
@@ -392,12 +390,6 @@ class SettingsStore(private val context: Context) {
     suspend fun setDrawerTransparency(transparency: Float) {
         context.launcherDataStore.edit {
             it[Keys.DRAWER_TRANSPARENCY] = transparency.coerceIn(0f, 1f)
-        }
-    }
-
-    suspend fun setShowQuickPeople(enabled: Boolean) {
-        context.launcherDataStore.edit {
-            it[Keys.SHOW_QUICK_PEOPLE] = enabled
         }
     }
 
