@@ -35,6 +35,7 @@ import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -78,6 +79,7 @@ import org.invokevirtual.launcher.system.AppCatalog
 import org.invokevirtual.launcher.system.AppIconAsset
 import org.invokevirtual.launcher.system.InstalledApp
 import org.invokevirtual.launcher.ui.components.InteractiveColorPicker
+import org.invokevirtual.launcher.ui.components.NotificationBadgeBox
 import org.invokevirtual.launcher.ui.theme.InvokeIcons
 import org.invokevirtual.launcher.ui.theme.toContainerShape
 import kotlin.math.roundToInt
@@ -156,6 +158,7 @@ fun InvokeBottomDock(
                 Surface(
                     shape = RoundedCornerShape(percent = 50),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     tonalElevation = 4.dp,
                     modifier = Modifier
                         .align(if (showModeButton) Alignment.BottomStart else Alignment.BottomCenter)
@@ -350,31 +353,33 @@ private fun DockActionSlotButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        when {
-            iconAsset != null && (iconStyle == IconStyle.FULL_COLOR || iconAsset!!.monochrome == null) -> {
-                Image(
-                    bitmap = iconAsset!!.fullColor,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape),
-                )
-            }
-            iconAsset?.monochrome != null -> {
-                Image(
-                    bitmap = iconAsset!!.monochrome!!,
-                    contentDescription = null,
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-            else -> {
-                Icon(
-                    imageVector = action.fallbackIcon,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp),
-                )
+        NotificationBadgeBox(apps = listOfNotNull(action.app?.key), iconSize = 38.dp) {
+            when {
+                iconAsset != null && (iconStyle == IconStyle.FULL_COLOR || iconAsset!!.monochrome == null) -> {
+                    Image(
+                        bitmap = iconAsset!!.fullColor,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape),
+                    )
+                }
+                iconAsset?.monochrome != null -> {
+                    Image(
+                        bitmap = iconAsset!!.monochrome!!,
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+                else -> {
+                    Icon(
+                        imageVector = action.fallbackIcon,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
         }
     }
@@ -423,6 +428,7 @@ fun CanvasEditDock(
     Surface(
         shape = RoundedCornerShape(32.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 4.dp,
         modifier = modifier
             .widthIn(max = 520.dp)
@@ -493,7 +499,7 @@ fun CanvasEditDock(
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            text = "App",
+                            text = "Add",
                             style = MaterialTheme.typography.labelLargeEmphasized,
                             maxLines = 1,
                         )
@@ -501,7 +507,7 @@ fun CanvasEditDock(
                 },
                 menuContent = { state ->
                     androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("Add App") },
+                        text = { Text("Add App or Folder") },
                         onClick = {
                             state.dismiss()
                             onAddAppClick()
@@ -624,8 +630,13 @@ fun CanvasBlockInspectorBar(
     onSelectTone: (TileTone) -> Unit,
     onSelectCustomBgArgb: (Int?) -> Unit,
     onEditWidget: (() -> Unit)? = null,
+    onEditFolder: (() -> Unit)? = null,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
+    supportsShape: Boolean = true,
+    maxColumns: Int = 4,
+    minCustomTileHeightDp: Float = 64f,
+    maxCustomTileHeightDp: Float = 280f,
 ) {
     val haptic = LocalHapticFeedback.current
     var activePanel by remember(blockId) { mutableStateOf(InspectorPanel.NONE) }
@@ -639,6 +650,10 @@ fun CanvasBlockInspectorBar(
         }
     }
     val supportsColor = currentTone != null
+    val clampedMaxCols = maxColumns.coerceIn(1, 4)
+    val availableTileSpans = remember(clampedMaxCols) {
+        TileSpan.entries.filter { it.columns <= clampedMaxCols }
+    }
 
     Column(
         modifier = modifier
@@ -651,6 +666,7 @@ fun CanvasBlockInspectorBar(
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 tonalElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -667,7 +683,7 @@ fun CanvasBlockInspectorBar(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    items(TileSpan.entries, key = { it.name }) { span ->
+                                    items(availableTileSpans, key = { it.name }) { span ->
                                         FilterChip(
                                             selected = !hasCustomWidgetSize && !customSizeExpanded && span == currentTileSpan,
                                             onClick = {
@@ -693,29 +709,32 @@ fun CanvasBlockInspectorBar(
                                 }
 
                                 AnimatedVisibility(visible = customSizeExpanded || hasCustomWidgetSize) {
+                                    val minH = minCustomTileHeightDp.roundToInt()
+                                    val maxH = maxCustomTileHeightDp.roundToInt()
                                     CustomSizeSliders(
-                                        columns = currentWidgetColumns,
+                                        columns = currentWidgetColumns.coerceIn(1, clampedMaxCols),
+                                        maxColumns = clampedMaxCols,
                                         draftHeightDp = draftHeightDp,
-                                        minHeightDp = 64f,
-                                        maxHeightDp = 280f,
+                                        minHeightDp = minCustomTileHeightDp,
+                                        maxHeightDp = maxCustomTileHeightDp,
                                         onSelectColumns = { cols ->
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             onSelectWidgetCustomSize(
                                                 cols,
-                                                draftHeightDp.roundToInt().coerceIn(64, 280),
+                                                draftHeightDp.roundToInt().coerceIn(minH, maxH),
                                             )
                                         },
                                         onHeightDrag = { next ->
                                             draftHeightDp = next
                                             onPreviewWidgetCustomSize(
-                                                currentWidgetColumns,
+                                                currentWidgetColumns.coerceIn(1, clampedMaxCols),
                                                 next.roundToInt(),
                                             )
                                         },
                                         onHeightDragFinished = {
                                             onSelectWidgetCustomSize(
-                                                currentWidgetColumns,
-                                                draftHeightDp.roundToInt().coerceIn(64, 280),
+                                                currentWidgetColumns.coerceIn(1, clampedMaxCols),
+                                                draftHeightDp.roundToInt().coerceIn(minH, maxH),
                                             )
                                         },
                                     )
@@ -843,6 +862,7 @@ fun CanvasBlockInspectorBar(
         Surface(
             shape = RoundedCornerShape(26.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.96f),
+            contentColor = MaterialTheme.colorScheme.onSurface,
             tonalElevation = 4.dp,
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -856,6 +876,10 @@ fun CanvasBlockInspectorBar(
                 IconButton(
                     onClick = onMoveBack,
                     enabled = canMoveBack,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                    ),
                     modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
@@ -868,6 +892,10 @@ fun CanvasBlockInspectorBar(
                 IconButton(
                     onClick = onMoveForward,
                     enabled = canMoveForward,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                    ),
                     modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
@@ -895,26 +923,28 @@ fun CanvasBlockInspectorBar(
                     )
                 }
 
-                IconButton(
-                    onClick = {
-                        activePanel = if (activePanel == InspectorPanel.SHAPE) {
-                            InspectorPanel.NONE
-                        } else {
-                            InspectorPanel.SHAPE
-                        }
-                    },
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        imageVector = InvokeIcons.Shapes,
-                        contentDescription = "Choose shape for $title",
-                        tint = if (activePanel == InspectorPanel.SHAPE) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
+                if (supportsShape) {
+                    IconButton(
+                        onClick = {
+                            activePanel = if (activePanel == InspectorPanel.SHAPE) {
+                                InspectorPanel.NONE
+                            } else {
+                                InspectorPanel.SHAPE
+                            }
                         },
-                        modifier = Modifier.size(20.dp),
-                    )
+                        modifier = Modifier.size(48.dp),
+                    ) {
+                        Icon(
+                            imageVector = InvokeIcons.Shapes,
+                            contentDescription = "Choose shape for $title",
+                            tint = if (activePanel == InspectorPanel.SHAPE) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
 
                 if (supportsColor) {
@@ -965,6 +995,20 @@ fun CanvasBlockInspectorBar(
                     }
                 }
 
+                if (onEditFolder != null) {
+                    IconButton(
+                        onClick = onEditFolder,
+                        modifier = Modifier.size(48.dp),
+                    ) {
+                        Icon(
+                            imageVector = InvokeIcons.Folder,
+                            contentDescription = "Manage apps in $title",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+
                 Spacer(Modifier.weight(1f))
 
                 IconButton(
@@ -992,6 +1036,7 @@ private fun CustomSizeSliders(
     onSelectColumns: (Int) -> Unit,
     onHeightDrag: (Float) -> Unit,
     onHeightDragFinished: () -> Unit,
+    maxColumns: Int = 4,
 ) {
     val clampedDraft = draftHeightDp.coerceIn(minHeightDp, maxHeightDp)
     Column(
@@ -1010,7 +1055,7 @@ private fun CustomSizeSliders(
                 style = MaterialTheme.typography.labelMediumEmphasized,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            (1..4).forEach { cols ->
+            (1..maxColumns.coerceIn(1, 4)).forEach { cols ->
                 FilterChip(
                     selected = columns == cols,
                     onClick = { onSelectColumns(cols) },

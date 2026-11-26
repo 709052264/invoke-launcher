@@ -17,14 +17,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalToggleButton
 import androidx.compose.material3.FilledTonalToggleButtonDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
@@ -60,30 +59,67 @@ import org.invokevirtual.launcher.data.TileShapePreset
 import org.invokevirtual.launcher.data.TileSpan
 import org.invokevirtual.launcher.system.AppCatalog
 import org.invokevirtual.launcher.system.AppIconAsset
+import org.invokevirtual.launcher.system.AppKey
 import org.invokevirtual.launcher.system.AppShortcutItem
 import org.invokevirtual.launcher.system.InstalledApp
 import org.invokevirtual.launcher.ui.components.TileIconGlyph
 import org.invokevirtual.launcher.ui.theme.InvokeIcons
-import org.invokevirtual.launcher.ui.theme.restPolygon
 import org.invokevirtual.launcher.ui.theme.toContainerShape
-import androidx.compose.material3.toShape
 
 private enum class AddCanvasTab(val label: String) {
     APPS("Apps"),
     SHORTCUTS("Shortcuts"),
+    FOLDER("Folder"),
+    SPACE("Space"),
 }
 
-/**
- * M3 Expressive sheet for adding any installed app OR app shortcut onto the Living Home Canvas
- * with a chosen span (`1×1`, `2×1`, or `2×2`) and custom container/icon shape.
- */
+private data class SpacerPresetOption(
+    val title: String,
+    val subtitle: String,
+    val span: TileSpan,
+    val customColumns: Int? = null,
+    val customHeightDp: Int? = null,
+)
+
+private val HOME_SPACER_PRESETS = listOf(
+    SpacerPresetOption(
+        title = "Full-Row Space (4×1)",
+        subtitle = "82dp tall · pushes tiles down cleanly",
+        span = TileSpan.BANNER,
+    ),
+    SpacerPresetOption(
+        title = "Tall Reachability Gap (4×2)",
+        subtitle = "172dp tall · brings content into thumb reach",
+        span = TileSpan.FEATURED,
+    ),
+    SpacerPresetOption(
+        title = "Deep One-Hand Gap (4×260dp)",
+        subtitle = "260dp tall · large top breathing room",
+        span = TileSpan.FEATURED,
+        customColumns = 4,
+        customHeightDp = 260,
+    ),
+    SpacerPresetOption(
+        title = "Half-Row Space (2×1)",
+        subtitle = "82dp tall · offset items side by side",
+        span = TileSpan.WIDE,
+    ),
+    SpacerPresetOption(
+        title = "Compact Slot Space (1×1)",
+        subtitle = "76dp tall · leave a single grid cell open",
+        span = TileSpan.COMPACT,
+    ),
+)
+
 @Composable
 fun AddCanvasAppSheet(
     installedApps: List<InstalledApp>,
     iconStyle: IconStyle,
     appCatalog: AppCatalog?,
-    onSelectApp: (InstalledApp, TileSpan, TileShapePreset) -> Unit,
-    onSelectShortcut: (AppShortcutItem, TileSpan, TileShapePreset) -> Unit,
+    onSelectApp: (InstalledApp) -> Unit,
+    onSelectShortcut: (AppShortcutItem) -> Unit,
+    onCreateFolder: (String, List<AppKey>) -> Unit = { _, _ -> },
+    onSelectSpacer: (TileSpan, Int?, Int?) -> Unit = { _, _, _ -> },
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberBottomSheetState(
@@ -94,8 +130,8 @@ fun AddCanvasAppSheet(
 
     var activeTab by remember { mutableStateOf(AddCanvasTab.APPS) }
     var query by remember { mutableStateOf("") }
-    var selectedSpan by remember { mutableStateOf(TileSpan.COMPACT) }
-    var selectedShape by remember { mutableStateOf(TileShapePreset.SQUIRCLE) }
+    var folderName by remember { mutableStateOf("") }
+    var selectedFolderApps by remember { mutableStateOf<List<AppKey>>(emptyList()) }
 
     val hasShortcutPermission = remember(appCatalog) {
         appCatalog?.hasShortcutPermission() == true
@@ -152,12 +188,21 @@ fun AddCanvasAppSheet(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = if (activeTab == AddCanvasTab.APPS) "Add App to Home" else "Pin Shortcut to Home",
+                        text = when (activeTab) {
+                            AddCanvasTab.APPS -> "Add App to Home"
+                            AddCanvasTab.SHORTCUTS -> "Pin Shortcut to Home"
+                            AddCanvasTab.FOLDER -> "Create Folder"
+                            AddCanvasTab.SPACE -> "Add Empty Space"
+                        },
                         style = MaterialTheme.typography.headlineSmallEmphasized,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Choose Apps or Shortcuts, tile span, and container shape",
+                        text = when (activeTab) {
+                            AddCanvasTab.FOLDER -> "Name your folder and pick apps to include"
+                            AddCanvasTab.SPACE -> "Insert empty space to bring tiles closer to your thumb"
+                            else -> "Choose an app or shortcut to add to your Home Canvas"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -169,10 +214,10 @@ fun AddCanvasAppSheet(
                 ) {
                     val tabs = AddCanvasTab.entries
                     tabs.forEachIndexed { index, tab ->
-                        val shapes = if (index == 0) {
-                            ButtonGroupDefaults.connectedLeadingButtonShapes()
-                        } else {
-                            ButtonGroupDefaults.connectedTrailingButtonShapes()
+                        val shapes = when (index) {
+                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                            tabs.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                         }
                         FilledTonalToggleButton(
                             checked = activeTab == tab,
@@ -180,9 +225,6 @@ fun AddCanvasAppSheet(
                                 if (it) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     activeTab = tab
-                                    if (tab == AddCanvasTab.SHORTCUTS && selectedShape == TileShapePreset.SQUIRCLE) {
-                                        selectedShape = TileShapePreset.LEAF
-                                    }
                                 }
                             },
                             shapes = shapes,
@@ -200,135 +242,201 @@ fun AddCanvasAppSheet(
                     }
                 }
 
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(
-                        items = TileSpan.entries,
-                        key = { it.name },
-                    ) { span ->
-                        FilterChip(
-                            selected = selectedSpan == span,
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                selectedSpan = span
-                            },
-                            label = {
+                if (activeTab == AddCanvasTab.FOLDER) {
+                    Row(
+                        modifier = Modifier
+                            .widthIn(max = 480.dp)
+                            .fillMaxWidth()
+                            .align(Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = folderName,
+                            onValueChange = { folderName = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = {
                                 Text(
-                                    text = span.label,
-                                    style = MaterialTheme.typography.labelLargeEmphasized,
+                                    text = "Folder name…",
                                     maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
-                            },
-                            modifier = Modifier.heightIn(min = 40.dp),
-                        )
-                    }
-                }
-
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(
-                        items = TileShapePreset.entries,
-                        key = { it.name },
-                    ) { shapePreset ->
-                        val chipShape = if (selectedSpan == TileSpan.COMPACT) {
-                            RoundedCornerShape(percent = 50)
-                        } else {
-                            shapePreset.toContainerShape(isWide = true)
-                        }
-                        FilterChip(
-                            selected = selectedShape == shapePreset,
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                selectedShape = shapePreset
                             },
                             leadingIcon = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clip(shapePreset.toContainerShape(isHero = true))
-                                        .background(
-                                            if (selectedShape == shapePreset) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            },
-                                        ),
+                                Icon(
+                                    imageVector = InvokeIcons.Folder,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
                                 )
                             },
-                            shape = chipShape,
-                            label = {
-                                Text(
-                                    text = shapePreset.label,
-                                    style = MaterialTheme.typography.labelMediumEmphasized,
-                                    maxLines = 1,
-                                )
-                            },
-                            modifier = Modifier.heightIn(min = 40.dp),
+                            singleLine = true,
+                            shape = RoundedCornerShape(percent = 50),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                unfocusedBorderColor = Color.Transparent,
+                            ),
                         )
+                        Button(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onCreateFolder(
+                                    folderName.trim().ifBlank { "Folder" },
+                                    selectedFolderApps,
+                                )
+                            },
+                            shape = RoundedCornerShape(percent = 50),
+                            modifier = Modifier.heightIn(min = 52.dp),
+                        ) {
+                            Text(
+                                text = if (selectedFolderApps.isEmpty()) {
+                                    "Create"
+                                } else {
+                                    "Create (${selectedFolderApps.size})"
+                                },
+                                maxLines = 1,
+                            )
+                        }
                     }
                 }
 
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier
-                        .widthIn(max = 480.dp)
-                        .fillMaxWidth()
-                        .align(Alignment.CenterHorizontally),
-                    placeholder = {
-                        Text(
-                            text = if (activeTab == AddCanvasTab.APPS) {
-                                "Filter apps…"
-                            } else {
-                                "Filter shortcuts (e.g. Compose, Selfie, Alarm)…"
-                            },
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = InvokeIcons.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    },
-                    trailingIcon = if (query.isNotEmpty()) {
-                        {
-                            IconButton(
-                                onClick = { query = "" },
-                                modifier = Modifier.padding(end = 4.dp),
-                            ) {
-                                Icon(
-                                    imageVector = InvokeIcons.Close,
-                                    contentDescription = "Clear filter",
-                                    modifier = Modifier.size(18.dp),
-                                )
+                if (activeTab != AddCanvasTab.SPACE) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier
+                            .widthIn(max = 480.dp)
+                            .fillMaxWidth()
+                            .align(Alignment.CenterHorizontally),
+                        placeholder = {
+                            Text(
+                                text = when (activeTab) {
+                                    AddCanvasTab.APPS -> "Filter apps…"
+                                    AddCanvasTab.SHORTCUTS -> "Filter shortcuts (e.g. Compose, Selfie, Alarm)…"
+                                    AddCanvasTab.FOLDER -> "Filter apps to include…"
+                                    AddCanvasTab.SPACE -> ""
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = InvokeIcons.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        },
+                        trailingIcon = if (query.isNotEmpty()) {
+                            {
+                                IconButton(
+                                    onClick = { query = "" },
+                                    modifier = Modifier.padding(end = 4.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = InvokeIcons.Close,
+                                        contentDescription = "Clear filter",
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
                             }
-                        }
-                    } else {
-                        null
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(percent = 50),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                        unfocusedBorderColor = Color.Transparent,
-                    ),
-                )
+                        } else {
+                            null
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(percent = 50),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            unfocusedBorderColor = Color.Transparent,
+                        ),
+                    )
+                }
 
-                if (activeTab == AddCanvasTab.APPS) {
+                if (activeTab == AddCanvasTab.SPACE) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentPadding = PaddingValues(bottom = 28.dp),
+                        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+                    ) {
+                        itemsIndexed(
+                            items = HOME_SPACER_PRESETS,
+                            key = { _, preset -> preset.title },
+                        ) { index, preset ->
+                            SegmentedListItem(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSelectSpacer(
+                                        preset.span,
+                                        preset.customColumns,
+                                        preset.customHeightDp
+                                    )
+                                },
+                                shapes = ListItemDefaults.segmentedShapes(
+                                    index = index,
+                                    count = HOME_SPACER_PRESETS.size
+                                ),
+                                colors = ListItemDefaults.segmentedColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                ),
+                                leadingContent = {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(TileShapePreset.SQUIRCLE.toContainerShape())
+                                            .background(MaterialTheme.colorScheme.tertiaryContainer),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = InvokeIcons.Swap,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
+                                },
+                                supportingContent = {
+                                    Text(
+                                        text = preset.subtitle,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                },
+                                trailingContent = {
+                                    Icon(
+                                        imageVector = InvokeIcons.Add,
+                                        contentDescription = "Add ${preset.title}",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                },
+                                content = {
+                                    Text(
+                                        text = preset.title,
+                                        style = MaterialTheme.typography.titleMediumEmphasized,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                },
+                            )
+                        }
+                    }
+                } else if (activeTab == AddCanvasTab.APPS || activeTab == AddCanvasTab.FOLDER) {
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -343,23 +451,34 @@ fun AddCanvasAppSheet(
                             val iconAsset by produceState<AppIconAsset?>(null, app, appCatalog) {
                                 value = appCatalog?.loadIcon(app)
                             }
+                            val isSelectedForFolder =
+                                activeTab == AddCanvasTab.FOLDER && app.key in selectedFolderApps
                             SegmentedListItem(
-                                onClick = { onSelectApp(app, selectedSpan, selectedShape) },
+                                onClick = {
+                                    if (activeTab == AddCanvasTab.FOLDER) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        selectedFolderApps = if (isSelectedForFolder) {
+                                            selectedFolderApps - app.key
+                                        } else {
+                                            selectedFolderApps + app.key
+                                        }
+                                    } else {
+                                        onSelectApp(app)
+                                    }
+                                },
                                 shapes = ListItemDefaults.segmentedShapes(index = index, count = filteredApps.size),
                                 colors = ListItemDefaults.segmentedColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    containerColor = if (isSelectedForFolder) {
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHigh
+                                    },
                                 ),
                                 leadingContent = {
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
-                                            .clip(
-                                                if (selectedSpan == TileSpan.COMPACT) {
-                                                    selectedShape.restPolygon().toShape()
-                                                } else {
-                                                    selectedShape.toContainerShape()
-                                                },
-                                            )
+                                            .clip(TileShapePreset.SQUIRCLE.toContainerShape())
                                             .background(MaterialTheme.colorScheme.primaryContainer),
                                         contentAlignment = Alignment.Center,
                                     ) {
@@ -373,12 +492,19 @@ fun AddCanvasAppSheet(
                                     }
                                 },
                                 trailingContent = {
-                                    Icon(
-                                        imageVector = InvokeIcons.Add,
-                                        contentDescription = "Add ${app.label}",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp),
-                                    )
+                                    if (activeTab == AddCanvasTab.FOLDER) {
+                                        Checkbox(
+                                            checked = isSelectedForFolder,
+                                            onCheckedChange = null,
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = InvokeIcons.Add,
+                                            contentDescription = "Add ${app.label}",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
                                 },
                                 content = {
                                     Text(
@@ -393,7 +519,7 @@ fun AddCanvasAppSheet(
                     }
                 } else if (!hasShortcutPermission || filteredShortcuts.isEmpty()) {
                     Surface(
-                        shape = selectedShape.toContainerShape(isWide = true),
+                        shape = RoundedCornerShape(24.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -447,7 +573,7 @@ fun AddCanvasAppSheet(
                             key = { _, sc -> sc.id },
                         ) { index, shortcut ->
                             SegmentedListItem(
-                                onClick = { onSelectShortcut(shortcut, selectedSpan, selectedShape) },
+                                onClick = { onSelectShortcut(shortcut) },
                                 shapes = ListItemDefaults.segmentedShapes(index = index, count = filteredShortcuts.size),
                                 colors = ListItemDefaults.segmentedColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -456,7 +582,7 @@ fun AddCanvasAppSheet(
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
-                                            .clip(selectedShape.toContainerShape())
+                                            .clip(TileShapePreset.LEAF.toContainerShape())
                                             .background(MaterialTheme.colorScheme.secondaryContainer),
                                         contentAlignment = Alignment.Center,
                                     ) {

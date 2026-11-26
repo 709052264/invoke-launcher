@@ -113,6 +113,7 @@ import org.invokevirtual.launcher.system.AppShortcutItem
 import org.invokevirtual.launcher.system.ContactsPickerHelper
 import org.invokevirtual.launcher.system.InstalledApp
 import org.invokevirtual.launcher.system.PrivateSpaceState
+import org.invokevirtual.launcher.ui.components.NotificationBadgeBox
 import org.invokevirtual.launcher.ui.components.TileIconGlyph
 import org.invokevirtual.launcher.ui.theme.InvokeIcons
 import org.invokevirtual.launcher.ui.theme.InvokeTheme
@@ -127,7 +128,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * - Inline quick calculator card with tap-to-copy
  * - Android 17 zero-permission Quick People (1-tap Call & Message)
  * - Live verb-first app shortcuts across Personal & Work profiles
- * - Authentic M3E connected [FilledTonalToggleButton] filter strip (`All`, `On Home`, `Work`)
+ * - Authentic M3E connected [FilledTonalToggleButton] filter strip (`All`, `Pinned`, `Work`)
  * - Authentic M3E [SegmentedListItem] A–Z groups with haptic scrubber rail + morphing letter bubble
  * - Android 15–17 Private Space vault anchored cleanly at the bottom
  */
@@ -149,6 +150,7 @@ fun InvokeSheet(
     onLongPressQuickContact: (QuickContact) -> Unit = {},
     showQuickPeople: Boolean = true,
     drawerTransparency: Float = 0f,
+    bottomSearchBar: Boolean = false,
 ) {
     val sheetState = rememberBottomSheetState(
         initialValue = SheetValue.Hidden,
@@ -172,6 +174,7 @@ fun InvokeSheet(
             iconStyle = iconStyle,
             showQuickPeople = showQuickPeople,
             drawerTransparency = clampedTransparency,
+            bottomSearchBar = bottomSearchBar,
             appCatalog = appCatalog,
             onQueryChange = onQueryChange,
             onClearQuery = onClearQuery,
@@ -209,6 +212,7 @@ internal fun InvokeSheetContent(
     onLongPressQuickContact: (QuickContact) -> Unit = {},
     showQuickPeople: Boolean = true,
     drawerTransparency: Float = 0f,
+    bottomSearchBar: Boolean = false,
 ) {
     val cardAlpha = (1f - drawerTransparency.coerceIn(0f, 1f) * 0.65f).coerceIn(0.35f, 1f)
     val context = LocalContext.current
@@ -261,10 +265,22 @@ internal fun InvokeSheetContent(
         uiState.quickContacts.isEmpty() -> 1
         else -> 1 + uiState.quickContacts.size
     }
+    val showPinnedSectionInBrowse = !uiState.isSearching &&
+            uiState.activeFilter == InvokeFilter.ALL &&
+            uiState.pinnedDrawerApps.isNotEmpty()
+    val browsePinnedItemCount = if (showPinnedSectionInBrowse) {
+        1 + uiState.pinnedDrawerApps.size
+    } else {
+        0
+    }
 
-    val sectionStartIndices = remember(uiState.sections, browseQuickPeopleItemCount) {
+    val sectionStartIndices = remember(
+        uiState.sections,
+        browseQuickPeopleItemCount,
+        browsePinnedItemCount,
+    ) {
         buildMap {
-            var itemIndex = browseQuickPeopleItemCount
+            var itemIndex = browseQuickPeopleItemCount + browsePinnedItemCount
             for (section in uiState.sections) {
                 put(section.letter, itemIndex)
                 itemIndex += 1 + section.apps.size
@@ -275,7 +291,8 @@ internal fun InvokeSheetContent(
     val scrubberLetters = remember(uiState.sections) {
         uiState.sections.map { it.letter }
     }
-    val showScrubber = !uiState.isSearching && scrubberLetters.size >= 3
+    val isPinnedFilterBrowse = !uiState.isSearching && uiState.activeFilter == InvokeFilter.PINNED
+    val showScrubber = !uiState.isSearching && !isPinnedFilterBrowse && scrubberLetters.size >= 3
 
     var activeScrubLetter by remember { mutableStateOf<Char?>(null) }
     var scrubTouchY by remember { mutableFloatStateOf(0f) }
@@ -291,15 +308,17 @@ internal fun InvokeSheetContent(
         listState.scrollToItem(0)
     }
 
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    val reverseSearchLayout = bottomSearchBar && uiState.isSearching
+
+    val searchBar: @Composable () -> Unit = {
         OutlinedTextField(
             state = searchFieldState,
             modifier = Modifier
-                .padding(horizontal = 20.dp)
+                .padding(
+                    start = 20.dp,
+                    end = 20.dp,
+                    bottom = if (bottomSearchBar) 12.dp else 0.dp,
+                )
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
                 .focusRequester(focusRequester),
@@ -354,7 +373,9 @@ internal fun InvokeSheetContent(
                 unfocusedBorderColor = Color.Transparent,
             ),
         )
+    }
 
+    val filterStrip: @Composable () -> Unit = {
         InvokeFilterStrip(
             activeFilter = uiState.activeFilter,
             showWorkFilter = uiState.hasWorkApps,
@@ -368,6 +389,17 @@ internal fun InvokeSheetContent(
                 .widthIn(max = 480.dp)
                 .fillMaxWidth(),
         )
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (!bottomSearchBar) {
+            searchBar()
+            filterStrip()
+        }
 
         Box(
             modifier = Modifier
@@ -377,140 +409,274 @@ internal fun InvokeSheetContent(
         ) {
             LazyColumn(
                 state = listState,
+                reverseLayout = reverseSearchLayout,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 20.dp,
                     end = if (showScrubber) 32.dp else 20.dp,
-                    bottom = 32.dp,
+                    top = if (bottomSearchBar) 8.dp else 0.dp,
+                    bottom = if (bottomSearchBar) 4.dp else 32.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+                verticalArrangement = Arrangement.spacedBy(
+                    ListItemDefaults.SegmentedGap,
+                    if (bottomSearchBar) Alignment.Bottom else Alignment.Top,
+                ),
             ) {
                 if (uiState.isSearching) {
-                    uiState.mathResult?.let { math ->
-                        item(key = "math_result") {
-                            InlineMathCard(
-                                result = math,
-                                cardAlpha = cardAlpha,
-                                modifier = Modifier.padding(bottom = 10.dp),
-                            )
-                        }
-                    }
+                    val hasMath = uiState.mathResult != null
+                    val hasContacts = showQuickPeople && uiState.matchingContacts.isNotEmpty()
+                    val hasContactPrompt =
+                        showQuickPeople && uiState.showContactPickerPromptInSearch
+                    val hasShortcuts = uiState.matchingShortcuts.isNotEmpty()
+                    val hasApps = uiState.rankedSearchResults.isNotEmpty()
 
-                    if (showQuickPeople && uiState.matchingContacts.isNotEmpty()) {
-                        item(key = "people_search_header") {
-                            QuickPeopleHeaderRow(
-                                count = uiState.matchingContacts.size,
-                                onAddClick = launchContactsPicker,
-                                modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
-                            )
-                        }
-                        itemsIndexed(
-                            items = uiState.matchingContacts,
-                            key = { _, contact -> "search_contact_${contact.lookupKey}" },
-                        ) { index, contact ->
-                            QuickContactRow(
-                                contact = contact,
-                                index = index,
-                                count = uiState.matchingContacts.size,
-                                isPinned = uiState.homeCanvas.containsContact(contact.lookupKey),
-                                cardAlpha = cardAlpha,
-                                onCall = { ContactsPickerHelper.dialContact(context, contact) },
-                                onMessage = { ContactsPickerHelper.messageContact(context, contact) },
-                                onLongClick = { onLongPressQuickContact(contact) },
-                            )
-                        }
-                        item(key = "people_search_spacer") {
-                            Spacer(modifier = Modifier.height(10.dp))
-                        }
-                    } else if (showQuickPeople && uiState.showContactPickerPromptInSearch) {
-                        item(key = "people_search_picker_prompt") {
-                            QuickPeoplePickerBanner(
-                                subtitle = if (supportsAndroid17Picker) {
-                                    "Android 17 Contacts Picker · no permission needed"
-                                } else {
-                                    "Pick favorite contacts for 1-tap call & text"
-                                },
-                                cardAlpha = cardAlpha,
-                                onPickClick = launchContactsPicker,
-                                modifier = Modifier.padding(bottom = 10.dp),
-                            )
-                        }
-                    }
-
-                    if (uiState.matchingShortcuts.isNotEmpty()) {
-                        item(key = "shortcuts_header") {
-                            SectionHeaderLabel(
-                                title = "Actions & Shortcuts",
-                                count = uiState.matchingShortcuts.size,
-                                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-                            )
-                        }
-                        itemsIndexed(
-                            items = uiState.matchingShortcuts,
-                            key = { _, shortcut -> "shortcut_${shortcut.id}" },
-                        ) { index, shortcut ->
-                            ShortcutResultRow(
-                                shortcut = shortcut,
-                                index = index,
-                                count = uiState.matchingShortcuts.size,
-                                cardAlpha = cardAlpha,
-                                onClick = { onLaunchShortcut(shortcut) },
-                            )
-                        }
-                        item(key = "shortcuts_spacer") {
-                            Spacer(modifier = Modifier.height(10.dp))
-                        }
-                    }
-
-                    if (uiState.rankedSearchResults.isNotEmpty()) {
-                        val hasAboveSections = uiState.mathResult != null ||
-                            uiState.matchingShortcuts.isNotEmpty() ||
-                            (showQuickPeople && uiState.matchingContacts.isNotEmpty()) ||
-                            (showQuickPeople && uiState.showContactPickerPromptInSearch)
-                        if (hasAboveSections) {
-                            item(key = "apps_search_header") {
-                                SectionHeaderLabel(
-                                    title = "Apps",
-                                    count = uiState.rankedSearchResults.size,
-                                    modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
+                    if (reverseSearchLayout) {
+                        uiState.mathResult?.let { math ->
+                            item(key = "math_result") {
+                                InlineMathCard(
+                                    result = math,
+                                    cardAlpha = cardAlpha,
+                                    modifier = Modifier.padding(
+                                        top = if (hasApps || hasShortcuts || hasContacts || hasContactPrompt) 10.dp else 0.dp,
+                                    ),
                                 )
                             }
                         }
-                        itemsIndexed(
-                            items = uiState.rankedSearchResults,
-                            key = { _, app ->
-                                "search_${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
-                            },
-                        ) { index, app ->
-                            val dimensionsLabel = if (uiState.activeFilter == InvokeFilter.PINNED) {
-                                uiState.homeCanvas.blockForApp(app.key)?.span?.label
-                            } else {
-                                null
+
+                        if (hasApps) {
+                            itemsIndexed(
+                                items = uiState.rankedSearchResults,
+                                key = { _, app ->
+                                    "search_${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
+                                },
+                            ) { index, app ->
+                                InvokeAppRow(
+                                    app = app,
+                                    isPinnedInDrawer = app.key in uiState.pinnedDrawerKeys,
+                                    isTopSearchMatch = index == 0,
+                                    index = uiState.rankedSearchResults.size - 1 - index,
+                                    count = uiState.rankedSearchResults.size,
+                                    cardAlpha = cardAlpha,
+                                    iconStyle = iconStyle,
+                                    appCatalog = appCatalog,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onLongPressApp(app) },
+                                )
                             }
-                            InvokeAppRow(
-                                app = app,
-                                canvasBadgeLabel = dimensionsLabel,
-                                isTopSearchMatch = index == 0,
-                                index = index,
-                                count = uiState.rankedSearchResults.size,
-                                cardAlpha = cardAlpha,
-                                iconStyle = iconStyle,
-                                appCatalog = appCatalog,
-                                onClick = { onLaunchApp(app) },
-                                onLongClick = { onLongPressApp(app) },
-                            )
+                            if (hasMath || hasShortcuts || hasContacts || hasContactPrompt) {
+                                item(key = "apps_search_header") {
+                                    SectionHeaderLabel(
+                                        title = "Apps",
+                                        count = uiState.rankedSearchResults.size,
+                                        modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
+                                    )
+                                }
+                            }
                         }
-                    } else if (
-                        uiState.mathResult == null &&
-                        uiState.matchingShortcuts.isEmpty() &&
-                        (!showQuickPeople || uiState.matchingContacts.isEmpty()) &&
-                        (!showQuickPeople || !uiState.showContactPickerPromptInSearch)
-                    ) {
-                        item(key = "empty_search") {
-                            EmptySearchCard(
-                                query = uiState.query.trim(),
-                                cardAlpha = cardAlpha,
-                            )
+
+                        if (hasShortcuts) {
+                            if (hasApps || hasMath) {
+                                item(key = "shortcuts_spacer") {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                }
+                            }
+                            itemsIndexed(
+                                items = uiState.matchingShortcuts,
+                                key = { _, shortcut -> "shortcut_${shortcut.id}" },
+                            ) { index, shortcut ->
+                                ShortcutResultRow(
+                                    shortcut = shortcut,
+                                    index = uiState.matchingShortcuts.size - 1 - index,
+                                    count = uiState.matchingShortcuts.size,
+                                    cardAlpha = cardAlpha,
+                                    onClick = { onLaunchShortcut(shortcut) },
+                                )
+                            }
+                            item(key = "shortcuts_header") {
+                                SectionHeaderLabel(
+                                    title = "Actions & Shortcuts",
+                                    count = uiState.matchingShortcuts.size,
+                                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                                )
+                            }
+                        }
+
+                        if (hasContacts) {
+                            if (hasApps || hasShortcuts || hasMath) {
+                                item(key = "people_search_spacer") {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                }
+                            }
+                            itemsIndexed(
+                                items = uiState.matchingContacts,
+                                key = { _, contact -> "search_contact_${contact.lookupKey}" },
+                            ) { index, contact ->
+                                QuickContactRow(
+                                    contact = contact,
+                                    index = uiState.matchingContacts.size - 1 - index,
+                                    count = uiState.matchingContacts.size,
+                                    isPinned = uiState.homeCanvas.containsContact(contact.lookupKey),
+                                    cardAlpha = cardAlpha,
+                                    onCall = { ContactsPickerHelper.dialContact(context, contact) },
+                                    onMessage = {
+                                        ContactsPickerHelper.messageContact(
+                                            context,
+                                            contact
+                                        )
+                                    },
+                                    onLongClick = { onLongPressQuickContact(contact) },
+                                )
+                            }
+                            item(key = "people_search_header") {
+                                QuickPeopleHeaderRow(
+                                    count = uiState.matchingContacts.size,
+                                    onAddClick = launchContactsPicker,
+                                    modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
+                                )
+                            }
+                        } else if (hasContactPrompt) {
+                            item(key = "people_search_picker_prompt") {
+                                QuickPeoplePickerBanner(
+                                    subtitle = if (supportsAndroid17Picker) {
+                                        "Android 17 Contacts Picker · no permission needed"
+                                    } else {
+                                        "Pick favorite contacts for 1-tap call & text"
+                                    },
+                                    cardAlpha = cardAlpha,
+                                    onPickClick = launchContactsPicker,
+                                    modifier = Modifier.padding(
+                                        bottom = if (hasApps || hasShortcuts || hasMath) 10.dp else 0.dp,
+                                    ),
+                                )
+                            }
+                        }
+
+                        if (!hasApps && !hasMath && !hasShortcuts && !hasContacts && !hasContactPrompt) {
+                            item(key = "empty_search") {
+                                EmptySearchCard(
+                                    query = uiState.query.trim(),
+                                    cardAlpha = cardAlpha,
+                                )
+                            }
+                        }
+                    } else {
+                        uiState.mathResult?.let { math ->
+                            item(key = "math_result") {
+                                InlineMathCard(
+                                    result = math,
+                                    cardAlpha = cardAlpha,
+                                    modifier = Modifier.padding(bottom = 10.dp),
+                                )
+                            }
+                        }
+
+                        if (hasContacts) {
+                            item(key = "people_search_header") {
+                                QuickPeopleHeaderRow(
+                                    count = uiState.matchingContacts.size,
+                                    onAddClick = launchContactsPicker,
+                                    modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
+                                )
+                            }
+                            itemsIndexed(
+                                items = uiState.matchingContacts,
+                                key = { _, contact -> "search_contact_${contact.lookupKey}" },
+                            ) { index, contact ->
+                                QuickContactRow(
+                                    contact = contact,
+                                    index = index,
+                                    count = uiState.matchingContacts.size,
+                                    isPinned = uiState.homeCanvas.containsContact(contact.lookupKey),
+                                    cardAlpha = cardAlpha,
+                                    onCall = { ContactsPickerHelper.dialContact(context, contact) },
+                                    onMessage = {
+                                        ContactsPickerHelper.messageContact(
+                                            context,
+                                            contact
+                                        )
+                                    },
+                                    onLongClick = { onLongPressQuickContact(contact) },
+                                )
+                            }
+                            item(key = "people_search_spacer") {
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+                        } else if (hasContactPrompt) {
+                            item(key = "people_search_picker_prompt") {
+                                QuickPeoplePickerBanner(
+                                    subtitle = if (supportsAndroid17Picker) {
+                                        "Android 17 Contacts Picker · no permission needed"
+                                    } else {
+                                        "Pick favorite contacts for 1-tap call & text"
+                                    },
+                                    cardAlpha = cardAlpha,
+                                    onPickClick = launchContactsPicker,
+                                    modifier = Modifier.padding(bottom = 10.dp),
+                                )
+                            }
+                        }
+
+                        if (hasShortcuts) {
+                            item(key = "shortcuts_header") {
+                                SectionHeaderLabel(
+                                    title = "Actions & Shortcuts",
+                                    count = uiState.matchingShortcuts.size,
+                                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                                )
+                            }
+                            itemsIndexed(
+                                items = uiState.matchingShortcuts,
+                                key = { _, shortcut -> "shortcut_${shortcut.id}" },
+                            ) { index, shortcut ->
+                                ShortcutResultRow(
+                                    shortcut = shortcut,
+                                    index = index,
+                                    count = uiState.matchingShortcuts.size,
+                                    cardAlpha = cardAlpha,
+                                    onClick = { onLaunchShortcut(shortcut) },
+                                )
+                            }
+                            item(key = "shortcuts_spacer") {
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+                        }
+
+                        if (hasApps) {
+                            if (hasMath || hasShortcuts || hasContacts || hasContactPrompt) {
+                                item(key = "apps_search_header") {
+                                    SectionHeaderLabel(
+                                        title = "Apps",
+                                        count = uiState.rankedSearchResults.size,
+                                        modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
+                                    )
+                                }
+                            }
+                            itemsIndexed(
+                                items = uiState.rankedSearchResults,
+                                key = { _, app ->
+                                    "search_${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
+                                },
+                            ) { index, app ->
+                                InvokeAppRow(
+                                    app = app,
+                                    isPinnedInDrawer = app.key in uiState.pinnedDrawerKeys,
+                                    isTopSearchMatch = index == 0,
+                                    index = index,
+                                    count = uiState.rankedSearchResults.size,
+                                    cardAlpha = cardAlpha,
+                                    iconStyle = iconStyle,
+                                    appCatalog = appCatalog,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onLongPressApp(app) },
+                                )
+                            }
+                        } else if (!hasMath && !hasShortcuts && !hasContacts && !hasContactPrompt) {
+                            item(key = "empty_search") {
+                                EmptySearchCard(
+                                    query = uiState.query.trim(),
+                                    cardAlpha = cardAlpha,
+                                )
+                            }
                         }
                     }
                 } else {
@@ -554,37 +720,96 @@ internal fun InvokeSheetContent(
                         }
                     }
 
-                    uiState.sections.forEach { section ->
-                        item(key = "header_${section.letter}") {
-                            LetterSectionHeader(
-                                letter = section.letter,
-                                count = section.apps.size,
-                                modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
-                            )
-                        }
-                        itemsIndexed(
-                            items = section.apps,
-                            key = { _, app ->
-                                "${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
-                            },
-                        ) { index, app ->
-                            val dimensionsLabel = if (uiState.activeFilter == InvokeFilter.PINNED) {
-                                uiState.homeCanvas.blockForApp(app.key)?.span?.label
-                            } else {
-                                null
+                    if (isPinnedFilterBrowse) {
+                        if (uiState.pinnedDrawerApps.isEmpty()) {
+                            item(key = "empty_pinned") {
+                                EmptyPinnedCard(cardAlpha = cardAlpha)
                             }
-                            InvokeAppRow(
-                                app = app,
-                                canvasBadgeLabel = dimensionsLabel,
-                                isTopSearchMatch = false,
-                                index = index,
-                                count = section.apps.size,
-                                cardAlpha = cardAlpha,
-                                iconStyle = iconStyle,
-                                appCatalog = appCatalog,
-                                onClick = { onLaunchApp(app) },
-                                onLongClick = { onLongPressApp(app) },
-                            )
+                        } else {
+                            item(key = "filter_pinned_header") {
+                                SectionHeaderLabel(
+                                    title = "Pinned",
+                                    count = uiState.pinnedDrawerApps.size,
+                                    modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
+                                )
+                            }
+                            itemsIndexed(
+                                items = uiState.pinnedDrawerApps,
+                                key = { _, app ->
+                                    "filter_pinned_${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
+                                },
+                            ) { index, app ->
+                                InvokeAppRow(
+                                    app = app,
+                                    isPinnedInDrawer = true,
+                                    isTopSearchMatch = false,
+                                    index = index,
+                                    count = uiState.pinnedDrawerApps.size,
+                                    cardAlpha = cardAlpha,
+                                    iconStyle = iconStyle,
+                                    appCatalog = appCatalog,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onLongPressApp(app) },
+                                )
+                            }
+                        }
+                    } else {
+                        if (showPinnedSectionInBrowse) {
+                            item(key = "pinned_drawer_header") {
+                                SectionHeaderLabel(
+                                    title = "Pinned",
+                                    count = uiState.pinnedDrawerApps.size,
+                                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                                )
+                            }
+                            itemsIndexed(
+                                items = uiState.pinnedDrawerApps,
+                                key = { _, app ->
+                                    "pinned_${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
+                                },
+                            ) { index, app ->
+                                InvokeAppRow(
+                                    app = app,
+                                    isPinnedInDrawer = true,
+                                    isTopSearchMatch = false,
+                                    index = index,
+                                    count = uiState.pinnedDrawerApps.size,
+                                    cardAlpha = cardAlpha,
+                                    iconStyle = iconStyle,
+                                    appCatalog = appCatalog,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onLongPressApp(app) },
+                                )
+                            }
+                        }
+
+                        uiState.sections.forEach { section ->
+                            item(key = "header_${section.letter}") {
+                                LetterSectionHeader(
+                                    letter = section.letter,
+                                    count = section.apps.size,
+                                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
+                                )
+                            }
+                            itemsIndexed(
+                                items = section.apps,
+                                key = { _, app ->
+                                    "${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
+                                },
+                            ) { index, app ->
+                                InvokeAppRow(
+                                    app = app,
+                                    isPinnedInDrawer = app.key in uiState.pinnedDrawerKeys,
+                                    isTopSearchMatch = false,
+                                    index = index,
+                                    count = section.apps.size,
+                                    cardAlpha = cardAlpha,
+                                    iconStyle = iconStyle,
+                                    appCatalog = appCatalog,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onLongPressApp(app) },
+                                )
+                            }
                         }
                     }
 
@@ -635,6 +860,11 @@ internal fun InvokeSheetContent(
                         .padding(end = 30.dp),
                 )
             }
+        }
+
+        if (bottomSearchBar) {
+            filterStrip()
+            searchBar()
         }
     }
 }
@@ -867,7 +1097,7 @@ private fun ShortcutResultRow(
 @Composable
 private fun InvokeAppRow(
     app: InstalledApp,
-    canvasBadgeLabel: String?,
+    isPinnedInDrawer: Boolean,
     isTopSearchMatch: Boolean,
     index: Int,
     count: Int,
@@ -905,20 +1135,22 @@ private fun InvokeAppRow(
                 )
             },
         leadingContent = {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                TileIconGlyph(
-                    iconAsset = iconAsset,
-                    fallbackGlyph = InvokeIcons.Apps,
-                    iconStyle = iconStyle,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(28.dp),
-                )
+            NotificationBadgeBox(apps = listOf(app.key), iconSize = 48.dp) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    TileIconGlyph(
+                        iconAsset = iconAsset,
+                        fallbackGlyph = InvokeIcons.Apps,
+                        iconStyle = iconStyle,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
         },
         supportingContent = if (app.isWorkProfile) {
@@ -951,21 +1183,14 @@ private fun InvokeAppRow(
                     }
                 }
             }
-            canvasBadgeLabel != null -> {
+            isPinnedInDrawer -> {
                 {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(percent = 50))
-                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                    ) {
-                        Text(
-                            text = canvasBadgeLabel,
-                            style = MaterialTheme.typography.labelSmallEmphasized,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            maxLines = 1,
-                        )
-                    }
+                    Icon(
+                        imageVector = InvokeIcons.Pin,
+                        contentDescription = "Pinned in drawer",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
             else -> null
@@ -1071,6 +1296,47 @@ private fun EmptySearchCard(
             )
             Text(
                 text = "Try initials (like yt) or quick math (145 * 1.18)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyPinnedCard(
+    cardAlpha: Float,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = cardAlpha),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = InvokeIcons.Pin,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp),
+            )
+            Text(
+                text = "No pinned apps yet",
+                style = MaterialTheme.typography.titleMediumEmphasized,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "Long-press any app in the drawer and tap Pin in drawer",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -1237,6 +1503,8 @@ private fun InvokeSheetBrowsePreview() {
             hasWorkApps = true,
             isSearching = false,
             sections = InvokeSearchEngine.groupAppsByLetter(sampleApps),
+            pinnedDrawerApps = listOf(sampleApps[4], sampleApps[2]),
+            pinnedDrawerKeys = setOf(sampleApps[4].key, sampleApps[2].key),
             homeCanvas = canvas,
             privateSpace = PrivateSpaceState.Locked(Process.myUserHandle()),
         )
@@ -1308,6 +1576,57 @@ private fun InvokeSheetSearchPreview() {
                 uiState = state,
                 autoFocusSearch = false,
                 iconStyle = IconStyle.THEMED_MONOCHROME,
+                appCatalog = null,
+                onQueryChange = {},
+                onClearQuery = {},
+                onSelectFilter = {},
+                onLaunchApp = {},
+                onLongPressApp = {},
+                onLaunchShortcut = {},
+                onTogglePrivateSpace = {},
+                onSavePickedContacts = {},
+                modifier = Modifier
+                    .fillMaxSize()
+                    .systemBarsPadding()
+                    .padding(top = 12.dp),
+            )
+        }
+    }
+}
+
+@Preview(
+    name = "Invoke Sheet · Bottom Search (Few Results)",
+    showSystemUi = true,
+    device = "spec:width=411dp,height=915dp,dpi=420",
+)
+@Composable
+private fun InvokeSheetBottomSearchPreview() {
+    val sampleApps = remember {
+        listOf(
+            previewApp("YouTube", "org.sample.youtube"),
+            previewApp("YouTube Music", "org.sample.ytmusic"),
+        )
+    }
+    val state = remember(sampleApps) {
+        InvokeUiState(
+            query = "yt",
+            activeFilter = InvokeFilter.ALL,
+            hasWorkApps = false,
+            isSearching = true,
+            rankedSearchResults = sampleApps,
+        )
+    }
+
+    InvokeTheme(settings = LauncherSettings(darkMode = DarkMode.DARK, dynamicColor = false)) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            InvokeSheetContent(
+                uiState = state,
+                autoFocusSearch = false,
+                iconStyle = IconStyle.THEMED_MONOCHROME,
+                bottomSearchBar = true,
                 appCatalog = null,
                 onQueryChange = {},
                 onClearQuery = {},

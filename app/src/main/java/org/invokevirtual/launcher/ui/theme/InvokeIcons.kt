@@ -766,6 +766,54 @@ object InvokeIcons {
         }
     }
 
+    val Folder: ImageVector by lazy {
+        vectorIcon("InvokeFolder") {
+            moveTo(10f, 4f)
+            horizontalLineTo(4f)
+            curveToRelative(-1.1f, 0f, -1.99f, 0.9f, -1.99f, 2f)
+            lineTo(2f, 18f)
+            curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
+            horizontalLineToRelative(16f)
+            curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+            verticalLineTo(8f)
+            curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+            horizontalLineToRelative(-8f)
+            lineToRelative(-2f, -2f)
+            close()
+        }
+    }
+
+    val CreateNewFolder: ImageVector by lazy {
+        vectorIcon("InvokeCreateNewFolder") {
+            moveTo(20f, 6f)
+            horizontalLineToRelative(-8f)
+            lineToRelative(-2f, -2f)
+            horizontalLineTo(4f)
+            curveToRelative(-1.11f, 0f, -1.99f, 0.89f, -1.99f, 2f)
+            lineTo(2f, 18f)
+            curveToRelative(0f, 1.11f, 0.89f, 2f, 2f, 2f)
+            horizontalLineToRelative(16f)
+            curveToRelative(1.11f, 0f, 2f, -0.89f, 2f, -2f)
+            verticalLineTo(8f)
+            curveToRelative(0f, -1.11f, -0.89f, -2f, -2f, -2f)
+            close()
+            moveTo(19f, 14f)
+            horizontalLineToRelative(-3f)
+            verticalLineToRelative(3f)
+            horizontalLineToRelative(-2f)
+            verticalLineToRelative(-3f)
+            horizontalLineToRelative(-3f)
+            verticalLineToRelative(-2f)
+            horizontalLineToRelative(3f)
+            verticalLineTo(9f)
+            horizontalLineToRelative(2f)
+            verticalLineToRelative(3f)
+            horizontalLineToRelative(3f)
+            verticalLineToRelative(2f)
+            close()
+        }
+    }
+
     private inline fun vectorIcon(
         name: String,
         crossinline pathBuilder: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit,

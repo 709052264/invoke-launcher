@@ -201,4 +201,119 @@ class HomeCanvasStoreTest {
         assertEquals("2×92dp", contactTile.sizeLabel)
         assertTrue(contactTile.hasCustomSize)
     }
+
+    @Test
+    fun `folder tiles encode and decode with apps, empty state, and custom sizes`() {
+        val app1 = AppKey("com.example.mail", ".MailActivity", 0L)
+        val app2 = AppKey("com.example.chat", ".ChatActivity", 10L)
+        val folderTile = CanvasBlock.FolderTile(
+            id = "fld_1",
+            title = "Comms",
+            apps = listOf(app1, app2),
+            span = TileSpan.HERO,
+            shape = TileShapePreset.COOKIE,
+            tone = TileTone.PRIMARY,
+            customBgArgb = 0xFF4527A0.toInt(),
+            customColumns = 2,
+            customHeightDp = 180,
+        )
+        val emptyFolder = CanvasBlock.FolderTile(
+            id = "fld_2",
+            title = "Empty",
+            apps = emptyList(),
+            span = TileSpan.COMPACT,
+            shape = TileShapePreset.SQUIRCLE,
+            tone = TileTone.SURFACE,
+        )
+
+        val original = listOf(folderTile, emptyFolder)
+        val encoded = HomeCanvasStore.encodeBlocks(original)
+        val decoded = HomeCanvasStore.decodeBlocks(encoded)
+
+        assertEquals(original, decoded)
+        assertEquals("2×180dp", folderTile.sizeLabel)
+        assertTrue(folderTile.hasCustomSize)
+
+        val state = HomeCanvasState(blocks = decoded, isCustomized = true)
+        assertTrue(state.containsApp(app1))
+        assertTrue(state.containsApp(app2))
+        assertEquals(2, state.folders.size)
+    }
+
+    @Test
+    fun `home spacer blocks encode and decode cleanly`() {
+        val presetSpacer = CanvasBlock.SpacerBlock(
+            id = "spc_banner",
+            span = TileSpan.BANNER,
+        )
+        val customSpacer = CanvasBlock.SpacerBlock(
+            id = "spc_thumb",
+            span = TileSpan.FEATURED,
+            customColumns = 4,
+            customHeightDp = 240,
+        )
+        val original = listOf(presetSpacer, customSpacer)
+        val encoded = HomeCanvasStore.encodeBlocks(original)
+        val decoded = HomeCanvasStore.decodeBlocks(encoded)
+
+        assertEquals(original, decoded)
+        assertEquals("4×1", presetSpacer.sizeLabel)
+        assertEquals("4×240dp", customSpacer.sizeLabel)
+        assertTrue(customSpacer.hasCustomSize)
+    }
+
+    @Test
+    fun `folder tiles encode and decode grid layout and mixed app and spacer items`() {
+        val app1 = AppKey("com.example.mail", ".MailActivity", 0L)
+        val app2 = AppKey("com.example.chat", ".ChatActivity", 0L)
+        val folderItems = listOf(
+            FolderItem.SpacerItem(
+                id = "fspc_top",
+                span = TileSpan.BANNER,
+                customColumns = 3,
+                customHeightDp = 120,
+            ),
+            FolderItem.AppItem(
+                id = "fi_mail",
+                appKey = app1,
+                span = TileSpan.WIDE,
+                shape = TileShapePreset.COOKIE,
+                tone = TileTone.PRIMARY,
+                customBgArgb = 0xFF283593.toInt(),
+                customColumns = 2,
+                customHeightDp = 110,
+            ),
+            FolderItem.AppItem(
+                id = "fi_chat",
+                appKey = app2,
+                span = TileSpan.COMPACT,
+                shape = TileShapePreset.LEAF,
+                tone = TileTone.TERTIARY,
+            ),
+        )
+        val gridFolder = CanvasBlock.FolderTile(
+            id = "fld_grid",
+            title = "Thumb Reach",
+            apps = listOf(app1, app2),
+            span = TileSpan.HERO,
+            shape = TileShapePreset.SQUIRCLE,
+            tone = TileTone.SURFACE,
+            layoutMode = FolderLayoutMode.GRID,
+            gridColumns = 3,
+            items = folderItems,
+        )
+
+        val encoded = HomeCanvasStore.encodeBlocks(listOf(gridFolder))
+        val decoded = HomeCanvasStore.decodeBlocks(encoded)
+
+        assertEquals(listOf(gridFolder), decoded)
+        val restored = decoded.single() as CanvasBlock.FolderTile
+        assertEquals(FolderLayoutMode.GRID, restored.layoutMode)
+        assertEquals(3, restored.effectiveGridColumns)
+        assertEquals(3, restored.effectiveItems.size)
+        val spacer = restored.effectiveItems[0] as FolderItem.SpacerItem
+        assertEquals("3×120dp", spacer.sizeLabel(restored.effectiveGridColumns))
+        val mailItem = restored.effectiveItems[1] as FolderItem.AppItem
+        assertEquals("2×110dp", mailItem.sizeLabel(restored.effectiveGridColumns))
+    }
 }

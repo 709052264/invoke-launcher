@@ -2,6 +2,8 @@ package org.invokevirtual.launcher.ui.invoke
 
 import org.invokevirtual.launcher.data.QuickContact
 import org.invokevirtual.launcher.data.QuickContactsStore
+import org.invokevirtual.launcher.data.SettingsStore
+import org.invokevirtual.launcher.system.AppKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -116,5 +118,18 @@ class InvokeSearchEngineTest {
         assertEquals(contacts, decoded)
         assertEquals("ML", decoded[0].initials)
         assertEquals("M", decoded[1].initials)
+    }
+
+    @Test
+    fun `pinned drawer app keys serialization round-trips more than four apps in order`() {
+        val keys = (1..6).map { i ->
+            AppKey("com.example.app$i", "com.example.app$i.MainActivity", if (i == 6) 10L else 0L)
+        }
+        val encoded = SettingsStore.encodeAppKeys(keys + keys.first())
+        val decoded = SettingsStore.decodeAppKeys(encoded)
+        assertEquals(keys, decoded)
+
+        val dockDecoded = SettingsStore.decodeDockApps(SettingsStore.encodeDockApps(keys))
+        assertEquals(SettingsStore.MAX_DOCK_APPS, dockDecoded.size)
     }
 }

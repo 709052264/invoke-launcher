@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -73,6 +74,8 @@ import org.invokevirtual.launcher.system.AppIconAsset
 import org.invokevirtual.launcher.system.AppShortcutItem
 import org.invokevirtual.launcher.system.InstalledApp
 import org.invokevirtual.launcher.system.WidgetHostController
+import org.invokevirtual.launcher.ui.components.NotificationBadge
+import org.invokevirtual.launcher.ui.components.NotificationBadgeBox
 import org.invokevirtual.launcher.ui.theme.InvokeIcons
 import org.invokevirtual.launcher.ui.theme.LocalReducedMotion
 import org.invokevirtual.launcher.ui.theme.rememberAnimatedContainerMorphShape
@@ -129,16 +132,18 @@ fun CanvasAppBlockCard(
         modifier = modifier,
         iconContent = { iconSize, morphShape ->
             val isContainerTile = !isFloating
-            ShapedAppIcon(
-                iconAsset = iconAsset,
-                fallbackGlyph = fallbackGlyph,
-                iconStyle = iconStyle,
-                shape = if (isContainerTile) RoundedCornerShape(percent = 26) else morphShape,
-                size = iconSize,
-                monochromeBg = if (isContainerTile) contentColor.copy(alpha = 0.11f) else containerColor,
-                monochromeFg = contentColor,
-                forceContainerBg = !isContainerTile && block.customBgArgb != null,
-            )
+            NotificationBadgeBox(apps = listOfNotNull(app?.key), iconSize = iconSize) {
+                ShapedAppIcon(
+                    iconAsset = iconAsset,
+                    fallbackGlyph = fallbackGlyph,
+                    iconStyle = iconStyle,
+                    shape = if (isContainerTile) RoundedCornerShape(percent = 26) else morphShape,
+                    size = iconSize,
+                    monochromeBg = if (isContainerTile) contentColor.copy(alpha = 0.11f) else containerColor,
+                    monochromeFg = contentColor,
+                    forceContainerBg = !isContainerTile && block.customBgArgb != null,
+                )
+            }
         },
     )
 }
@@ -267,7 +272,522 @@ fun CanvasContactBlockCard(
 }
 
 @Composable
-private fun CanvasTileScaffold(
+fun CanvasSpacerBlockCard(
+    block: CanvasBlock.SpacerBlock,
+    isEditMode: Boolean,
+    isSelected: Boolean,
+    onSelectInEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    CanvasSpacerPlaceholderCard(
+        sizeLabel = block.sizeLabel,
+        isSquareSize = block.isSquareSize,
+        effectiveHeightDp = block.effectiveHeightDp,
+        isEditMode = isEditMode,
+        isSelected = isSelected,
+        onSelectInEdit = onSelectInEdit,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun CanvasSpacerPlaceholderCard(
+    sizeLabel: String,
+    isSquareSize: Boolean,
+    effectiveHeightDp: Int,
+    isEditMode: Boolean,
+    isSelected: Boolean,
+    onSelectInEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val reducedMotion = LocalReducedMotion.current
+    val haptic = LocalHapticFeedback.current
+    val defaultDpSpatial = MaterialTheme.motionScheme.defaultSpatialSpec<Dp>()
+
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val targetHeight = if (isSquareSize) maxWidth else effectiveHeightDp.dp
+        val animatedHeight by animateDpAsState(
+            targetValue = targetHeight,
+            animationSpec = if (reducedMotion) snap() else defaultDpSpatial,
+            label = "spacerHeightMorph",
+        )
+        if (!isEditMode) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(animatedHeight)
+                    .semantics { contentDescription = "Empty space" },
+            )
+        } else {
+            Surface(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onSelectInEdit()
+                },
+                shape = RoundedCornerShape(22.dp),
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.42f)
+                },
+                border = BorderStroke(
+                    width = if (isSelected) 2.dp else 1.dp,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)
+                    },
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(animatedHeight)
+                    .semantics {
+                        contentDescription = "Empty space, $sizeLabel"
+                        selected = isSelected
+                    },
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (effectiveHeightDp >= 48) {
+                            "Empty Space · $sizeLabel"
+                        } else {
+                            sizeLabel
+                        },
+                        style = MaterialTheme.typography.labelSmallEmphasized,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CanvasFolderBlockCard(
+    block: CanvasBlock.FolderTile,
+    folderApps: List<InstalledApp>,
+    iconStyle: IconStyle,
+    showLabel: Boolean,
+    isEditMode: Boolean,
+    isSelected: Boolean,
+    appCatalog: AppCatalog?,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onSelectInEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val reducedMotion = LocalReducedMotion.current
+    val haptic = LocalHapticFeedback.current
+    val customColor = block.customBgArgb?.let(::Color)
+    val containerColor = customColor ?: block.tone.containerColor()
+    val contentColor = customColor?.let(::contrastingForegroundFor) ?: block.tone.contentColor()
+    val isFloating = block.effectiveColumns == 1 &&
+            (if (block.hasCustomSize) block.effectiveHeightDp <= 116 && block.customBgArgb == null else block.span == TileSpan.COMPACT)
+    val title = block.title.ifBlank { "Folder" }
+    val countLabel = when (folderApps.size) {
+        0 -> "Empty"
+        1 -> "1 app"
+        else -> "${folderApps.size} apps"
+    }
+
+    val useBentoTile = !isFloating &&
+            block.effectiveColumns >= 2 &&
+            (block.isSquareSize || block.effectiveHeightDp >= 136) &&
+            folderApps.isNotEmpty()
+
+    if (useBentoTile) {
+        val interactionSource = remember { MutableInteractionSource() }
+        val pressed by interactionSource.collectIsPressedAsState()
+        val fastSpatial = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+        val defaultDpSpatial = MaterialTheme.motionScheme.defaultSpatialSpec<Dp>()
+        val pressScale by animateFloatAsState(
+            targetValue = when {
+                isSelected -> 1.03f
+                pressed && !isEditMode -> 0.94f
+                else -> 1f
+            },
+            animationSpec = if (reducedMotion) snap() else fastSpatial,
+            label = "bentoFolderPressScale",
+        )
+
+        BoxWithConstraints(
+            modifier = modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = pressScale
+                    scaleY = pressScale
+                }
+                .semantics {
+                    contentDescription = "$title folder, $countLabel"
+                    if (isEditMode) {
+                        selected = isSelected
+                    } else {
+                        customActions = listOf(
+                            CustomAccessibilityAction("Edit folder") {
+                                onLongClick()
+                                true
+                            },
+                        )
+                    }
+                },
+        ) {
+            val targetHeight = if (block.isSquareSize) maxWidth else block.effectiveHeightDp.dp
+            val animatedHeight by animateDpAsState(
+                targetValue = targetHeight,
+                animationSpec = if (reducedMotion) snap() else defaultDpSpatial,
+                label = "bentoFolderHeightMorph",
+            )
+            val targetAspect = (maxWidth / targetHeight.coerceAtLeast(1.dp)).coerceIn(0.25f, 4.5f)
+            val containerShape = rememberAnimatedContainerMorphShape(
+                shapePreset = block.shape,
+                aspectRatio = targetAspect,
+                pressed = pressed && !isEditMode,
+                reducedMotion = reducedMotion,
+            )
+            val itemMorphShape = rememberAnimatedContainerMorphShape(
+                shapePreset = block.shape,
+                aspectRatio = 1f,
+                pressed = pressed && !isEditMode,
+                reducedMotion = reducedMotion,
+            )
+
+            Surface(
+                shape = containerShape,
+                color = containerColor,
+                contentColor = contentColor,
+                border = containerEditBorder(isEditMode, isSelected),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(animatedHeight)
+                    .clip(containerShape)
+                    .combinedClickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = {
+                            if (isEditMode) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onSelectInEdit()
+                            } else {
+                                onClick()
+                            }
+                        },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onLongClick()
+                        },
+                    ),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMediumEmphasized,
+                            color = contentColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = countLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor.copy(alpha = 0.76f),
+                            maxLines = 1,
+                        )
+                        NotificationBadge(
+                            apps = folderApps.map { it.key },
+                            iconSize = 48.dp,
+                            modifier = Modifier.padding(start = 6.dp),
+                        )
+                    }
+
+                    FolderBentoMosaic(
+                        apps = folderApps,
+                        iconStyle = iconStyle,
+                        itemShape = itemMorphShape,
+                        cellBg = contentColor.copy(alpha = 0.11f),
+                        cellFg = contentColor,
+                        appCatalog = appCatalog,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
+                }
+            }
+        }
+    } else {
+        CanvasTileScaffold(
+            span = block.span,
+            effectiveColumns = block.effectiveColumns,
+            effectiveHeightDp = block.effectiveHeightDp,
+            isSquareSize = block.isSquareSize,
+            hasCustomSize = block.hasCustomSize,
+            shapePreset = block.shape,
+            label = title,
+            subLabel = countLabel,
+            showLabel = showLabel,
+            hasCustomBg = block.customBgArgb != null,
+            containerColor = containerColor,
+            contentColor = contentColor,
+            isEditMode = isEditMode,
+            isSelected = isSelected,
+            accessibilityLabel = "$title folder, $countLabel",
+            accessibilityActionLabel = "Edit folder",
+            onClick = { onClick() },
+            onLongClick = onLongClick,
+            onSelectInEdit = onSelectInEdit,
+            modifier = modifier,
+            iconContent = { iconSize, morphShape ->
+                val isContainerTile = !isFloating
+                NotificationBadgeBox(apps = folderApps.map { it.key }, iconSize = iconSize) {
+                    FolderMiniGridIcon(
+                        previewApps = folderApps.take(4),
+                        iconStyle = iconStyle,
+                        shape = morphShape,
+                        size = iconSize,
+                        bgColor = if (isContainerTile) contentColor.copy(alpha = 0.11f) else containerColor,
+                        fgColor = contentColor,
+                        appCatalog = appCatalog,
+                    )
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun FolderBentoMosaic(
+    apps: List<InstalledApp>,
+    iconStyle: IconStyle,
+    itemShape: Shape,
+    cellBg: Color,
+    cellFg: Color,
+    appCatalog: AppCatalog?,
+    modifier: Modifier = Modifier,
+) {
+    when (apps.size) {
+        1 -> {
+            FolderBentoCell(
+                app = apps[0],
+                iconStyle = iconStyle,
+                itemShape = itemShape,
+                cellBg = cellBg,
+                cellFg = cellFg,
+                iconSize = 46.dp,
+                appCatalog = appCatalog,
+                modifier = modifier.fillMaxSize(),
+            )
+        }
+
+        2 -> {
+            Row(
+                modifier = modifier,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                FolderBentoCell(
+                    app = apps[0],
+                    iconStyle = iconStyle,
+                    itemShape = itemShape,
+                    cellBg = cellBg,
+                    cellFg = cellFg,
+                    iconSize = 40.dp,
+                    appCatalog = appCatalog,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                )
+                FolderBentoCell(
+                    app = apps[1],
+                    iconStyle = iconStyle,
+                    itemShape = itemShape,
+                    cellBg = cellBg,
+                    cellFg = cellFg,
+                    iconSize = 40.dp,
+                    appCatalog = appCatalog,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                )
+            }
+        }
+
+        3 -> {
+            Row(
+                modifier = modifier,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                FolderBentoCell(
+                    app = apps[0],
+                    iconStyle = iconStyle,
+                    itemShape = itemShape,
+                    cellBg = cellBg,
+                    cellFg = cellFg,
+                    iconSize = 44.dp,
+                    appCatalog = appCatalog,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    FolderBentoCell(
+                        app = apps[1],
+                        iconStyle = iconStyle,
+                        itemShape = itemShape,
+                        cellBg = cellBg,
+                        cellFg = cellFg,
+                        iconSize = 26.dp,
+                        appCatalog = appCatalog,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
+                    FolderBentoCell(
+                        app = apps[2],
+                        iconStyle = iconStyle,
+                        itemShape = itemShape,
+                        cellBg = cellBg,
+                        cellFg = cellFg,
+                        iconSize = 26.dp,
+                        appCatalog = appCatalog,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
+                }
+            }
+        }
+
+        else -> {
+            Row(
+                modifier = modifier,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                FolderBentoCell(
+                    app = apps[0],
+                    iconStyle = iconStyle,
+                    itemShape = itemShape,
+                    cellBg = cellBg,
+                    cellFg = cellFg,
+                    iconSize = 44.dp,
+                    appCatalog = appCatalog,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    FolderBentoCell(
+                        app = apps[1],
+                        iconStyle = iconStyle,
+                        itemShape = itemShape,
+                        cellBg = cellBg,
+                        cellFg = cellFg,
+                        iconSize = 26.dp,
+                        appCatalog = appCatalog,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        FolderBentoCell(
+                            app = apps[2],
+                            iconStyle = iconStyle,
+                            itemShape = itemShape,
+                            cellBg = cellBg,
+                            cellFg = cellFg,
+                            iconSize = 22.dp,
+                            appCatalog = appCatalog,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        )
+                        FolderBentoCell(
+                            app = apps[3],
+                            iconStyle = iconStyle,
+                            itemShape = itemShape,
+                            cellBg = cellBg,
+                            cellFg = cellFg,
+                            iconSize = 22.dp,
+                            appCatalog = appCatalog,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FolderBentoCell(
+    app: InstalledApp,
+    iconStyle: IconStyle,
+    itemShape: Shape,
+    cellBg: Color,
+    cellFg: Color,
+    iconSize: Dp,
+    appCatalog: AppCatalog?,
+    modifier: Modifier = Modifier,
+) {
+    val iconAsset by produceState<AppIconAsset?>(initialValue = null, app, appCatalog) {
+        value = appCatalog?.loadIcon(app)
+    }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(cellBg),
+        contentAlignment = Alignment.Center,
+    ) {
+        ShapedAppIcon(
+            iconAsset = iconAsset,
+            fallbackGlyph = InvokeIcons.Apps,
+            iconStyle = iconStyle,
+            shape = itemShape,
+            size = iconSize,
+            monochromeBg = cellFg.copy(alpha = 0.12f),
+            monochromeFg = cellFg,
+        )
+    }
+}
+
+@Composable
+internal fun CanvasTileScaffold(
     span: TileSpan,
     effectiveColumns: Int,
     effectiveHeightDp: Int,
@@ -407,17 +927,30 @@ private fun CanvasTileScaffold(
                 pressed = pressed && !isEditMode,
                 reducedMotion = reducedMotion,
             )
+            val iconMorphShape = rememberAnimatedContainerMorphShape(
+                shapePreset = shapePreset,
+                aspectRatio = 1f,
+                pressed = pressed && !isEditMode,
+                reducedMotion = reducedMotion,
+            )
             val isHorizontal = targetAspect >= 1.25f
             val isHero = isSquareSize || (effectiveColumns == 2 && targetAspect in 0.82f..1.22f)
             val targetIconSize = when {
-                isHorizontal -> (targetHeight * 0.46f).coerceIn(36.dp, 68.dp)
+                isHorizontal -> (targetHeight * 0.52f)
+                    .coerceAtMost(maxWidth * 0.36f)
+                    .coerceIn(36.dp, 108.dp)
                 isHero -> if (showLabel || subLabel != null) {
-                    (min(maxWidth, targetHeight) * 0.44f).coerceIn(68.dp, 84.dp)
+                    (min(maxWidth, targetHeight) * 0.48f).coerceIn(56.dp, 124.dp)
                 } else {
-                    (min(maxWidth, targetHeight) * 0.54f).coerceIn(80.dp, 104.dp)
+                    (min(maxWidth, targetHeight) * 0.58f).coerceIn(68.dp, 140.dp)
                 }
 
-                else -> (min(maxWidth, targetHeight) * 0.42f).coerceIn(38.dp, 60.dp)
+                effectiveColumns == 1 -> (min(maxWidth, targetHeight) * 0.54f).coerceIn(
+                    42.dp,
+                    72.dp
+                )
+
+                else -> (min(maxWidth, targetHeight) * 0.46f).coerceIn(44.dp, 104.dp)
             }
             val animatedIconSize by animateDpAsState(
                 targetValue = targetIconSize,
@@ -458,7 +991,7 @@ private fun CanvasTileScaffold(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(if (targetHeight >= 136.dp) 18.dp else 12.dp),
                     ) {
-                        iconContent(animatedIconSize, containerShape)
+                        iconContent(animatedIconSize, iconMorphShape)
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -508,7 +1041,7 @@ private fun CanvasTileScaffold(
                             Arrangement.SpaceBetween
                         },
                     ) {
-                        iconContent(animatedIconSize, containerShape)
+                        iconContent(animatedIconSize, iconMorphShape)
                         if (showLabel || subLabel != null) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -599,7 +1132,7 @@ private fun containerEditBorder(
 }
 
 @Composable
-private fun ShapedAppIcon(
+internal fun ShapedAppIcon(
     iconAsset: AppIconAsset?,
     fallbackGlyph: ImageVector,
     iconStyle: IconStyle,
@@ -779,6 +1312,79 @@ private fun ShapedContactIcon(
     }
 }
 
+@Composable
+private fun FolderMiniGridIcon(
+    previewApps: List<InstalledApp>,
+    iconStyle: IconStyle,
+    shape: Shape,
+    size: Dp,
+    bgColor: Color,
+    fgColor: Color,
+    appCatalog: AppCatalog?,
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(shape)
+            .background(bgColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (previewApps.isEmpty()) {
+            Icon(
+                imageVector = InvokeIcons.Folder,
+                contentDescription = null,
+                tint = fgColor,
+                modifier = Modifier.size(size * 0.48f),
+            )
+        } else {
+            val gridPad = (size * 0.14f).coerceAtLeast(4.dp)
+            val cellGap = (size * 0.06f).coerceAtLeast(2.dp)
+            val miniSize = ((size - gridPad * 2 - cellGap) / 2f).coerceAtLeast(8.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(gridPad),
+                verticalArrangement = Arrangement.spacedBy(cellGap, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                for (rowIdx in 0..1) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(
+                            cellGap,
+                            Alignment.CenterHorizontally
+                        ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        for (colIdx in 0..1) {
+                            val app = previewApps.getOrNull(rowIdx * 2 + colIdx)
+                            if (app != null) {
+                                val iconAsset by produceState<AppIconAsset?>(
+                                    initialValue = null,
+                                    app,
+                                    appCatalog,
+                                ) {
+                                    value = appCatalog?.loadIcon(app)
+                                }
+                                ShapedAppIcon(
+                                    iconAsset = iconAsset,
+                                    fallbackGlyph = InvokeIcons.Apps,
+                                    iconStyle = iconStyle,
+                                    shape = shape,
+                                    size = miniSize,
+                                    monochromeBg = fgColor.copy(alpha = 0.14f),
+                                    monochromeFg = fgColor,
+                                )
+                            } else {
+                                Box(modifier = Modifier.size(miniSize))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 /**
  * Renders a native Android `AppWidgetHostView` directly edge-to-edge on the Home Canvas —
  * supports preset sizes (`2×1`, `2×2` true square, `4×1`, `4×2`, `4×3`) AND custom `1..4 col × dp`
@@ -897,11 +1503,11 @@ fun CanvasWidgetBlockCard(
     }
 }
 
-private fun contrastingForegroundFor(bg: Color): Color =
+internal fun contrastingForegroundFor(bg: Color): Color =
     if (bg.luminance() > 0.42f) Color(0xFF141218) else Color.White
 
 @Composable
-private fun TileTone.containerColor(): Color = when (this) {
+internal fun TileTone.containerColor(): Color = when (this) {
     TileTone.PRIMARY -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f)
     TileTone.SECONDARY -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.92f)
     TileTone.TERTIARY -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.92f)
@@ -909,7 +1515,7 @@ private fun TileTone.containerColor(): Color = when (this) {
 }
 
 @Composable
-private fun TileTone.contentColor(): Color = when (this) {
+internal fun TileTone.contentColor(): Color = when (this) {
     TileTone.PRIMARY -> MaterialTheme.colorScheme.onPrimaryContainer
     TileTone.SECONDARY -> MaterialTheme.colorScheme.onSecondaryContainer
     TileTone.TERTIARY -> MaterialTheme.colorScheme.onTertiaryContainer
