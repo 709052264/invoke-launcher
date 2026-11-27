@@ -1089,6 +1089,12 @@ fun HomeCanvas(
                 appCatalog?.startShortcut(shortcut)
             },
             onTogglePrivateSpace = onTogglePrivateSpace,
+            hiddenPwaIds = settings.hiddenPwaIds,
+            onHidePwa = { id ->
+                scope.launch {
+                    settingsStore.setHiddenPwaIds(settings.hiddenPwaIds + id)
+                }
+            }
         )
     }
 
