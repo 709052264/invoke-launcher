@@ -113,6 +113,7 @@ enum class ExpressivePalette(val displayName: String) {
 
 @Immutable
 data class LauncherSettings(
+    val hiddenPwaIds: Set<String> = emptySet(), // 👈 新增字段
     val workspaceMode: WorkspaceMode = WorkspaceMode.EVERYDAY,
     val darkMode: DarkMode = DarkMode.SYSTEM,
     val dynamicColor: Boolean = true,
@@ -157,6 +158,7 @@ data class LauncherSettings(
 
 class SettingsStore(private val context: Context) {
     private object Keys {
+        val HIDDEN_PWA_IDS = stringPreferencesKey("hidden_pwa_ids") // 👈 新增 Key
         val WORKSPACE_MODE = stringPreferencesKey("workspace_mode")
         val DARK_MODE = stringPreferencesKey("dark_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
@@ -259,6 +261,12 @@ class SettingsStore(private val context: Context) {
         context.launcherDataStore.edit { it[Keys.WORKSPACE_MODE] = mode.name }
     }
 
+    suspend fun setHiddenPwaIds(ids: Set<String>) {
+        context.launcherDataStore.edit {
+            it[Keys.HIDDEN_PWA_IDS] = ids.joinToString(",")
+        }
+    }
+    
     suspend fun setDarkMode(mode: DarkMode) {
         context.launcherDataStore.edit { it[Keys.DARK_MODE] = mode.name }
     }
