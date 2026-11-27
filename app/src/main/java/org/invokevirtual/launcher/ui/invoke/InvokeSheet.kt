@@ -137,6 +137,7 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 @Composable
 fun InvokeSheet(
+    hiddenPwaIds: Set<String> = emptySet(), // 👈 加在这里
     uiState: InvokeUiState,
     autoFocusSearch: Boolean,
     iconStyle: IconStyle,
@@ -176,6 +177,7 @@ fun InvokeSheet(
             bottomSearchBar = bottomSearchBar,
             appCatalog = appCatalog,
             onQueryChange = onQueryChange,
+            hiddenPwaIds = hiddenPwaIds, // 👈 传给 Content
             onClearQuery = onClearQuery,
             onSelectFilter = onSelectFilter,
             onLaunchApp = onLaunchApp,
@@ -193,6 +195,7 @@ fun InvokeSheet(
 
 @Composable
 internal fun InvokeSheetContent(
+    hiddenPwaIds: Set<String> = emptySet(), // 👈 加在这里
     uiState: InvokeUiState,
     autoFocusSearch: Boolean,
     iconStyle: IconStyle,
