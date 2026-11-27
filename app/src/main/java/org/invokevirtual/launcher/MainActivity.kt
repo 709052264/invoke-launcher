@@ -21,6 +21,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -62,6 +63,9 @@ class MainActivity : ComponentActivity() {
 
     private var pendingPinRequest by mutableStateOf<LauncherApps.PinItemRequest?>(null)
 
+    // 每次收到系统 Home 事件（上滑回桌面 / Home 键）就 +1，HomeCanvas 据此关闭抽屉
+    private var homePressTick by mutableIntStateOf(0)
+
     override fun onStart() {
         super.onStart()
         container.widgetHost.startListening()
@@ -76,6 +80,9 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         extractPinItemRequest(intent)
+        if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {
+            homePressTick++
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -584,6 +591,12 @@ class MainActivity : ComponentActivity() {
                         onTogglePinInDrawer = { appKey ->
                             scope.launch { container.settingsStore.togglePinnedDrawerApp(appKey) }
                         },
+                        onHidePwa = { id ->
+                            scope.launch {
+                                container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds + id)
+                            }
+                        },
+                        homePressTick = homePressTick,
                     )
 
                     if (!isDefaultLauncher && !dismissedDefaultPrompt) {

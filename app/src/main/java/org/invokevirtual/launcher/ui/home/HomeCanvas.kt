@@ -177,6 +177,7 @@ fun HomeCanvas(
     onInvokeSelectFilter: (InvokeFilter) -> Unit = {},
     onTogglePrivateSpace: (Boolean) -> Unit = {},
     onTogglePinInDrawer: (AppKey) -> Unit = {},
+    homePressTick: Int = 0,
     onHidePwa: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -255,6 +256,11 @@ fun HomeCanvas(
     val closeInvokeSheet: () -> Unit = {
         invokeSheetOpen = false
         onInvokeClearQuery()
+    }
+
+    // 系统 Home 手势（上滑回桌面）：MainActivity.onNewIntent 会递增 homePressTick
+    LaunchedEffect(homePressTick) {
+        if (homePressTick > 0 && invokeSheetOpen) closeInvokeSheet()
     }
 
     val backState = rememberNavigationEventState(NavigationEventInfo.None)
