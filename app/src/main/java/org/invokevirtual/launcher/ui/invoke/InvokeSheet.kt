@@ -153,11 +153,21 @@ fun InvokeSheet(
     onTogglePrivateSpace: (Boolean) -> Unit,
     drawerTransparency: Float = 0f,
     bottomSearchBar: Boolean = false,
+    homePressTick: Int = 0,
 ) {
     val sheetState = rememberBottomSheetState(
         initialValue = SheetValue.Expanded, // 👈 改回 SheetValue
         enabledValues = setOf(SheetValue.Expanded, SheetValue.Hidden)
     )
+
+    // 系统 Home 手势（上滑回桌面）：先播放和下滑/返回相同的收起动画，动画结束后再真正关闭
+    val homeTickAtOpen = remember { homePressTick }
+    LaunchedEffect(homePressTick) {
+        if (homePressTick != homeTickAtOpen) {
+            sheetState.hide()
+            onDismiss()
+        }
+    }
     val clampedTransparency = drawerTransparency.coerceIn(0f, 1f)
     val sheetAlpha = 1f - clampedTransparency
     val baseScrimColor = BottomSheetDefaults.ScrimColor

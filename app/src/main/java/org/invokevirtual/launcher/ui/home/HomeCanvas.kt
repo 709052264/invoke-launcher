@@ -258,11 +258,6 @@ fun HomeCanvas(
         onInvokeClearQuery()
     }
 
-    // 系统 Home 手势（上滑回桌面）：MainActivity.onNewIntent 会递增 homePressTick
-    LaunchedEffect(homePressTick) {
-        if (homePressTick > 0 && invokeSheetOpen) closeInvokeSheet()
-    }
-
     val backState = rememberNavigationEventState(NavigationEventInfo.None)
     NavigationBackHandler(
         state = backState,
@@ -1083,6 +1078,7 @@ fun HomeCanvas(
             onClearQuery = onInvokeClearQuery,
             onSelectFilter = onInvokeSelectFilter,
             onDismiss = closeInvokeSheet,
+            homePressTick = homePressTick,
             onLaunchApp = { app ->
                 closeInvokeSheet()
                 onLaunchApp(app, null)
