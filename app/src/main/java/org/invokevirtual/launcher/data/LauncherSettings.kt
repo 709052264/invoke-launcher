@@ -254,6 +254,11 @@ class SettingsStore(private val context: Context) {
             badgeStyle = prefs[Keys.BADGE_STYLE]
                 ?.let { runCatching { BadgeStyle.valueOf(it) }.getOrNull() }
                 ?: BadgeStyle.OFF,
+            hiddenPwaIds = prefs[Keys.HIDDEN_PWA_IDS]
+                ?.split(",")
+                ?.filter { it.isNotBlank() }
+                ?.toSet() 
+                ?: emptySet()
         )
     }
 
