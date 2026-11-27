@@ -153,8 +153,8 @@ fun InvokeSheet(
     bottomSearchBar: Boolean = false,
 ) {
     val sheetState = rememberBottomSheetState(
-        initialValue = SheetValue.Hidden,
-        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+        initialValue = SheetState.Expanded, // 👈 改为初始状态展开
+        enabledValues = setOf(SheetState.Expanded, SheetState.Hidden)
     )
     val clampedTransparency = drawerTransparency.coerceIn(0f, 1f)
     val sheetAlpha = 1f - clampedTransparency
@@ -222,7 +222,9 @@ internal fun InvokeSheetContent(
 
     val allShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog, pwaRefreshKey) {
         value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
-            withContext(Dispatchers.Default) { appCatalog.loadPwaShortcuts() }
+            withContext(Dispatchers.Default) {
+                appCatalog.loadPwaShortcuts().filter { it.id !in hiddenPwaIds } // 👈 过滤掉被隐藏的
+            }
         } else {
             emptyList()
         }
