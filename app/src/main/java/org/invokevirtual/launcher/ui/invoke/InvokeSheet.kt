@@ -534,6 +534,7 @@ internal fun InvokeSheetContent(
                                         count = sectionApps.size + sectionShortcuts.size,
                                         cardAlpha = cardAlpha,
                                         onClick = { onLaunchShortcut(shortcut) },
+                                        onLongClick = { shortcutToRemove = shortcut } // 👈 新增长按事件
                                     )
                                 }
                             }
