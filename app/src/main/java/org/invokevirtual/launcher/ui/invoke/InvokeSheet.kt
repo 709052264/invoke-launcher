@@ -153,8 +153,8 @@ fun InvokeSheet(
     bottomSearchBar: Boolean = false,
 ) {
     val sheetState = rememberBottomSheetState(
-        initialValue = SheetState.Expanded, // 👈 改为初始状态展开
-        enabledValues = setOf(SheetState.Expanded, SheetState.Hidden)
+        initialValue = SheetValue.Expanded, // 👈 改回 SheetValue
+        enabledValues = setOf(SheetValue.Expanded, SheetValue.Hidden)
     )
     val clampedTransparency = drawerTransparency.coerceIn(0f, 1f)
     val sheetAlpha = 1f - clampedTransparency
