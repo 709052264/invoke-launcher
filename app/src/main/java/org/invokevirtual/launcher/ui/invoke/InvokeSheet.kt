@@ -1,5 +1,6 @@
 package org.invokevirtual.launcher.ui.invoke
 
+import androidx.compose.material3.TextButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.shape.CircleShape
@@ -768,9 +769,16 @@ private fun ShortcutResultRow(
     count: Int,
     cardAlpha: Float,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {}, // 👈 新增参数
 ) {
+    val haptic = LocalHapticFeedback.current // 👈 引入震动反馈
+
     SegmentedListItem(
         onClick = onClick,
+        onLongClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onLongClick()
+        }, // 👈 绑定长按
         shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
         colors = ListItemDefaults.segmentedColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = cardAlpha),
