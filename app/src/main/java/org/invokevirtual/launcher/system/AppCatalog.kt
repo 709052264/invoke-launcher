@@ -416,6 +416,16 @@ class AppCatalog(private val context: Context) {
         }
     }
 
+    /** 解除固定快捷方式（将其从抽屉移除） */
+    fun unpinShortcuts(packageName: String, shortcutIds: List<String>, userSerial: Long) {
+        val service = launcherApps ?: return
+        if (!hasShortcutPermission()) return
+        val handle = userManager?.getUserForSerialNumber(userSerial) ?: Process.myUserHandle()
+        runCatching {
+            service.unpinShortcuts(packageName, shortcutIds, handle)
+        }
+    }
+
     /**
      * Searches across Personal/Work app shortcuts for verb-first invocation (e.g., "new note",
      * "alarm", "selfie"). Private Space profiles are strictly excluded from global shortcut search.
