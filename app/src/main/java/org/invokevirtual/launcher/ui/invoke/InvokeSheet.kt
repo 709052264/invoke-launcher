@@ -596,6 +596,30 @@ internal fun InvokeSheetContent(
             searchBar()
         }
     }
+    // 👇👇👇 请在这里加入弹窗代码 👇👇👇
+    shortcutToRemove?.let { sc ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { shortcutToRemove = null },
+            title = { Text("Remove Shortcut") },
+            text = { Text("Are you sure you want to remove \"${sc.label}\"?") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        appCatalog?.unpinShortcuts(sc.packageName, listOf(sc.shortcutId), sc.userSerial)
+                        shortcutToRemove = null
+                        pwaRefreshKey++ // 触发数据刷新
+                    }
+                ) {
+                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { shortcutToRemove = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }  
 }
 
 @Composable
