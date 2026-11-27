@@ -1,5 +1,8 @@
 name: Build arm64 APK
 
+permissions:
+  contents: write
+  
 on:
   workflow_dispatch:
 
@@ -55,4 +58,5 @@ jobs:
         with:
           tag_name: "v1.0.${{ github.run_number }}"
           name: "Invoke-Launcher-Modified ${{ github.run_number }}"
-          files: artifacts/*.apk
+          target_commitish: ${{ github.sha }}
+          files: app/build/outputs/apk/**/*.apk
