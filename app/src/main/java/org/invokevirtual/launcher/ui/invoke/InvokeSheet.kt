@@ -219,7 +219,7 @@ internal fun InvokeSheetContent(
     // 2. 加载 PWA 快捷方式
     val allShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog) {
         value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
-            withContext(Dispatchers.Default) { appCatalog.loadAllShortcuts() }
+            withContext(Dispatchers.Default) { appCatalog.loadPwaShortcuts() } // 👈 调用专门只抓取 PWA 的方法
         } else {
             emptyList()
         }
