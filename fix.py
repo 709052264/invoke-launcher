@@ -1,101 +1,77 @@
-import re
 from pathlib import Path
 
 BASE = Path("app/src/main/java/org/invokevirtual/launcher")
 
 
-def read(rel):
-    return (BASE / rel).read_text(encoding="utf-8").split("\n")
+def sub_once(text, old, new, what):
+    assert text.count(old) == 1, f"{what}: 期望匹配 1 处，实际 {text.count(old)} 处"
+    return text.replace(old, new)
 
 
-def write(rel, lines):
-    (BASE / rel).write_text("\n".join(lines), encoding="utf-8")
+# ---------- InvokeSheet.kt ----------
+p = BASE / "ui/invoke/InvokeSheet.kt"
+t = p.read_text(encoding="utf-8")
 
+# 1) ModalBottomSheet 里重复的 onDismissRequest
+dup = "        onDismissRequest = onDismiss,\n"
+assert t.count(dup) == 2, f"重复的 onDismissRequest: 期望 2 处，实际 {t.count(dup)}"
+first = t.index(dup)
+second = t.index(dup, first + 1)
+t = t[:second] + t[second + len(dup):]
 
-def delta(s, chars_open="({", chars_close=")}"):
-    return sum(s.count(c) for c in chars_open) - sum(s.count(c) for c in chars_close)
+# 2) 把 onHidePwa 传给 InvokeSheetContent
+t = sub_once(
+    t,
+    "            hiddenPwaIds = hiddenPwaIds, // 👈 传给 Content\n",
+    "            hiddenPwaIds = hiddenPwaIds,\n            onHidePwa = onHidePwa,\n",
+    "forward onHidePwa",
+)
 
+# 3) 先加载全部 PWA 快捷方式，再按隐藏列表实时过滤
+old_ps = """    val allShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog, pwaRefreshKey) {
+        value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
+            withContext(Dispatchers.Default) {
+                appCatalog.loadPwaShortcuts().filter { it.id !in hiddenPwaIds } // 👈 这里过滤掉本地隐藏的
+            }
+        } else {
+            emptyList()
+        }
+    }
+"""
+new_ps = """    val loadedShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog, pwaRefreshKey) {
+        value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
+            withContext(Dispatchers.Default) { appCatalog.loadPwaShortcuts() }
+        } else {
+            emptyList()
+        }
+    }
+    // 隐藏列表一变就立即重新过滤，不依赖设置异步保存完成的时机
+    val allShortcuts = remember(loadedShortcuts, hiddenPwaIds) {
+        loadedShortcuts.filter { it.id !in hiddenPwaIds }
+    }
+"""
+t = sub_once(t, old_ps, new_ps, "produceState")
+p.write_text(t, encoding="utf-8")
 
-def remove_branches(lines):
-    """删除所有以 'is CanvasBlock.ContactTile ->' 开头的 when 分支（按括号配对）。"""
-    out, i, n = [], 0, 0
-    while i < len(lines):
-        if lines[i].strip().startswith("is CanvasBlock.ContactTile ->"):
-            depth = delta(lines[i])
-            i += 1
-            while depth > 0:
-                depth += delta(lines[i])
-                i += 1
-            n += 1
-            continue
-        out.append(lines[i])
-        i += 1
-    return out, n
+# ---------- HomeCanvas.kt ----------
+p = BASE / "ui/home/HomeCanvas.kt"
+t = p.read_text(encoding="utf-8")
 
+# 4) HomeCanvas 新增参数
+t = sub_once(
+    t,
+    "    onTogglePinInDrawer: (AppKey) -> Unit = {},\n) {\n    val context = LocalContext.current",
+    "    onTogglePinInDrawer: (AppKey) -> Unit = {},\n    onHidePwa: (String) -> Unit = {},\n) {\n    val context = LocalContext.current",
+    "HomeCanvas param",
+)
 
-def remove_function(lines, name):
-    """删除整个函数（含上方的 @ 注解行）。"""
-    idx = next((k for k, l in enumerate(lines) if re.search(rf"\bfun {name}\(", l)), None)
-    if idx is None:
-        return lines, 0
-    start = idx
-    while start > 0 and lines[start - 1].strip().startswith("@"):
-        start -= 1
-    depth, seen, j = 0, False, idx
-    while True:
-        depth += lines[j].count("{") - lines[j].count("}")
-        seen = seen or "{" in lines[j]
-        j += 1
-        if seen and depth <= 0:
-            break
-    if j < len(lines) and lines[j].strip() == "":
-        j += 1
-    return lines[:start] + lines[j:], 1
-
-
-def remove_lambda_arg(lines, needle):
-    """删除包含 needle 的那个 'onXxx = { ... },' 参数。返回 (新行, 被删除的行)。"""
-    idx = next((k for k, l in enumerate(lines) if needle in l), None)
-    if idx is None:
-        return lines, None
-    start = idx
-    while start >= 0 and not re.match(r"\s*on\w+\s*=\s*\{", lines[start]):
-        start -= 1
-    if start < 0:
-        raise SystemExit(f"找不到 {needle} 所在的 onXxx = {{ 参数，请手动处理")
-    depth, j = 0, start
-    while True:
-        depth += lines[j].count("{") - lines[j].count("}")
-        j += 1
-        if depth <= 0:
-            break
-    if j <= idx:
-        raise SystemExit("定位到的 lambda 不包含目标调用，请手动处理")
-    return lines[:start] + lines[j:], lines[start:j]
-
-
-# MainActivity.kt
-lines = read("MainActivity.kt")
-lines, removed = remove_lambda_arg(lines, "removeContactTile")
-write("MainActivity.kt", lines)
-print("MainActivity.kt 删除了:\n" + "\n".join(removed or ["(无)"]))
-
-# CanvasBlockItem.kt
-lines = read("ui/home/CanvasBlockItem.kt")
-lines, n = remove_function(lines, "CanvasContactBlockCard")
-write("ui/home/CanvasBlockItem.kt", lines)
-print("CanvasBlockItem.kt 删除函数:", n)
-
-# HomeCanvas.kt
-lines = read("ui/home/HomeCanvas.kt")
-lines, n = remove_branches(lines)
-write("ui/home/HomeCanvas.kt", lines)
-print("HomeCanvas.kt 删除分支:", n)
-
-# 全项目残留
-pat = re.compile(r"ContactTile|CanvasContactBlockCard|removeContactTile|ContactsPickerHelper")
-print("\n仍需处理的残留:")
-for f in sorted(BASE.rglob("*.kt")):
-    for k, l in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
-        if pat.search(l):
-            print(f"{f.relative_to(BASE)}:{k}: {l.strip()}")
+# 5) 用参数替换找不到 scope / settingsStore 的 lambda
+old_cb = """            onHidePwa = { id ->
+                scope.launch {
+                    settingsStore.setHiddenPwaIds(settings.hiddenPwaIds + id)
+                }
+            }
+"""
+t = sub_once(t, old_cb, "            onHidePwa = onHidePwa,\n", "HomeCanvas callback")
+p.write_text(t, encoding="utf-8")
+print("OK")
