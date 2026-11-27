@@ -594,7 +594,8 @@ internal fun InvokeSheetContent(
             confirmButton = {
                 androidx.compose.material3.TextButton(
                     onClick = {
-                        appCatalog?.unpinShortcuts(sc.packageName, listOf(sc.shortcutId), sc.userSerial)
+                        // 👇 注意这里方法名和参数变了
+                        appCatalog?.unpinShortcut(sc.packageName, sc.shortcutId, sc.userSerial)
                         shortcutToRemove = null
                         pwaRefreshKey++ // 触发数据刷新
                     }
