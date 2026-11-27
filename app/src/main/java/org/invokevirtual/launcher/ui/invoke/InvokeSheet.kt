@@ -235,7 +235,7 @@ internal fun InvokeSheetContent(
     val showPinnedSectionInBrowse = !uiState.isSearching &&
             uiState.activeFilter == InvokeFilter.ALL &&
             uiState.pinnedDrawerApps.isNotEmpty()
-    val browsePinnedItemCount = if (showPinnedSectionInBrowse) {
+    val browsePinnedItemCount = 
         1 + uiState.pinnedDrawerApps.size
     } else {
         0
@@ -607,6 +607,10 @@ internal fun InvokeSheetContent(
                             }
                         }
                     } else {
+                        if (isPinnedFilterBrowse) {
+                        // ... (你原本的 Pinned 渲染代码，保持不变) ...
+                    } else {
+                        // 👇 1. 这里的 showPinnedSectionInBrowse 现在能找到了
                         if (showPinnedSectionInBrowse) {
                             item(key = "pinned_drawer_header") {
                                 SectionHeaderLabel(
@@ -636,6 +640,7 @@ internal fun InvokeSheetContent(
                             }
                         }
 
+                        // 👇 2. 这里的混排逻辑（解决 704 行推断报错）
                         allLetters.forEach { letter ->
                             val sectionApps = uiState.sections.find { it.letter == letter }?.apps ?: emptyList()
                             val sectionShortcuts = shortcutsByLetter[letter] ?: emptyList()
@@ -648,13 +653,13 @@ internal fun InvokeSheetContent(
                                         modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
                                     )
                                 }
-                                // 先渲染该字母下的普通 App
+                                // 渲染普通 App
                                 itemsIndexed(
                                     items = sectionApps,
-                                    key = { _, app ->
+                                    key = { _, app: InstalledApp -> // 👈 加上类型声明防止推断失败
                                         "${app.key.packageName}/${app.key.className}/${app.key.userSerial}"
                                     },
-                                ) { index, app ->
+                                ) { index, app: InstalledApp -> // 👈 加上类型声明
                                     InvokeAppRow(
                                         app = app,
                                         isPinnedInDrawer = app.key in uiState.pinnedDrawerKeys,
@@ -668,11 +673,13 @@ internal fun InvokeSheetContent(
                                         onLongClick = { onLongPressApp(app) },
                                     )
                                 }
-                                // 紧接着渲染该字母下的 Shortcuts（例如 PWA）
+                                // 渲染混入的 Shortcuts (PWA)
                                 itemsIndexed(
                                     items = sectionShortcuts,
-                                    key = { _, sc -> "shortcut_${sc.id}" },
-                                ) { index, shortcut ->
+                                    key = { _, sc: AppShortcutItem -> // 👈 加上类型声明
+                                        "shortcut_${sc.id}"
+                                    },
+                                ) { index, shortcut: AppShortcutItem -> // 👈 加上类型声明
                                     ShortcutResultRow(
                                         shortcut = shortcut,
                                         index = sectionApps.size + index,
