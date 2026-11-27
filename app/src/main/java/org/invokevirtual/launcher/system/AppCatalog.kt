@@ -247,7 +247,66 @@ class AppCatalog(private val context: Context) {
      * Loads all enabled app shortcuts across Personal & Work profiles so users can pin any
      * shortcut directly onto the Living Home Canvas.
      */
-    /** 仅加载用户固定到桌面的快捷方式（通常是浏览器的 PWA 网页快捷方式） */
+        // 👇 这是你删掉的旧方法，必须补回来，供 AddCanvasAppSheet 使用
+    suspend fun loadAllShortcuts(limit: Int = 80): List<AppShortcutItem> {
+        val service = launcherApps ?: return emptyList()
+        val um = userManager ?: return emptyList()
+        if (!hasShortcutPermission()) return emptyList()
+
+        return withContext(Dispatchers.Default) {
+            val appLabelsByPackage = _apps.value.associateBy(
+                keySelector = { it.componentName.packageName },
+                valueTransform = { it.label },
+            )
+            val density = context.resources.displayMetrics.densityDpi
+            val iconSizePx = (44 * context.resources.displayMetrics.density).toInt().coerceIn(72, 160)
+            val collected = ArrayList<AppShortcutItem>(limit.coerceAtMost(64))
+
+            for (profile in um.userProfiles) {
+                if (classifyProfile(profile) == AppProfile.PRIVATE) continue
+                val serial = um.getSerialNumberForUser(profile)
+                val query = LauncherApps.ShortcutQuery().apply {
+                    setQueryFlags(
+                        LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
+                            LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or
+                            LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED,
+                    )
+                }
+                val shortcuts = runCatching { service.getShortcuts(query, profile) }
+                    .getOrNull()
+                    .orEmpty()
+                    .filter { it.isEnabled }
+                    .sortedWith(
+                        compareBy<ShortcutInfo>(
+                            { (appLabelsByPackage[it.`package`] ?: it.`package`).lowercase() },
+                            { !it.isDeclaredInManifest },
+                            { it.rank },
+                        ),
+                    )
+
+                for (info in shortcuts) {
+                    val label = info.shortLabel?.toString()?.takeIf { it.isNotBlank() }
+                        ?: info.longLabel?.toString()?.takeIf { it.isNotBlank() }
+                        ?: continue
+                    val icon = runCatching {
+                        service.getShortcutIconDrawable(info, density)?.toImageBitmap(iconSizePx)
+                    }.getOrNull()
+                    collected += AppShortcutItem(
+                        id = "${info.`package`}/${info.id}/$serial",
+                        label = label,
+                        appLabel = appLabelsByPackage[info.`package`] ?: info.`package`,
+                        shortcutInfo = info,
+                        icon = icon,
+                        userSerial = serial,
+                    )
+                    if (collected.size >= limit) return@withContext collected
+                }
+            }
+            collected
+        }
+    }
+
+    // 👇 这是我们刚刚新增的方法，仅加载 PWA（固定/网页）快捷方式，供 InvokeSheet 使用
     suspend fun loadPwaShortcuts(): List<AppShortcutItem> {
         val service = launcherApps ?: return emptyList()
         val um = userManager ?: return emptyList()
@@ -262,7 +321,7 @@ class AppCatalog(private val context: Context) {
                 if (classifyProfile(profile) == AppProfile.PRIVATE) continue
                 val serial = um.getSerialNumberForUser(profile)
                 val query = LauncherApps.ShortcutQuery().apply {
-                    // 👇 关键修改：仅查询用户主动固定的快捷方式（PWA 通常属于此类）
+                    // 仅查询固定快捷方式
                     setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
                 }
                 val shortcuts = runCatching { service.getShortcuts(query, profile) }
@@ -281,7 +340,7 @@ class AppCatalog(private val context: Context) {
                         id = "${info.`package`}/${info.id}/$serial",
                         label = label,
                         appLabel = _apps.value.firstOrNull { it.componentName.packageName == info.`package` }?.label 
-                            ?: "Web App", // 如果找不到宿主包名，显示 Web App
+                            ?: "Web App",
                         shortcutInfo = info,
                         icon = icon,
                         userSerial = serial,
