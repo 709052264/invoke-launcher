@@ -217,23 +217,12 @@ internal fun InvokeSheetContent(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // 👇 新增：用于刷新快捷方式列表的状态
     var pwaRefreshKey by remember { mutableIntStateOf(0) }
     var shortcutToRemove by remember { mutableStateOf<AppShortcutItem?>(null) }
 
-    // 👇 修改：加入 pwaRefreshKey 让数据能刷新
     val allShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog, pwaRefreshKey) {
         value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
             withContext(Dispatchers.Default) { appCatalog.loadPwaShortcuts() }
-        } else {
-            emptyList()
-        }
-    }
-    
-    // 2. 加载 PWA 快捷方式
-    val allShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog) {
-        value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
-            withContext(Dispatchers.Default) { appCatalog.loadPwaShortcuts() } // 👈 调用专门只抓取 PWA 的方法
         } else {
             emptyList()
         }
