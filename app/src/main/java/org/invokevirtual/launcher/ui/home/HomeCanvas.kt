@@ -74,6 +74,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
@@ -200,6 +201,12 @@ fun HomeCanvas(
     var widgetPickerOpen by rememberSaveable { mutableStateOf(false) }
     var addAppSheetOpen by rememberSaveable { mutableStateOf(false) }
     var openFolderId by rememberSaveable { mutableStateOf<String?>(null) }
+    // 文件夹弹窗（Lawnchair 式从文件夹位置展开）；原来的底部面板保留给「Edit」
+    var popupFolderId by rememberSaveable { mutableStateOf<String?>(null) }
+    var folderCloseTick by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val folderBounds = remember {
+        androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.geometry.Rect>()
+    }
     var manageFolderAppsId by rememberSaveable { mutableStateOf<String?>(null) }
     var actionTargetApp by remember { mutableStateOf<InstalledApp?>(null) }
     var actionTargetFromDrawer by remember { mutableStateOf(false) }
@@ -262,6 +269,7 @@ fun HomeCanvas(
     NavigationBackHandler(
         state = backState,
         isBackEnabled = actionTargetApp != null ||
+                popupFolderId != null ||
                 manageFolderAppsId != null ||
                 openFolderId != null ||
             addAppSheetOpen ||
@@ -276,6 +284,7 @@ fun HomeCanvas(
                     actionTargetApp = null
                     actionTargetFromDrawer = false
                 }
+                popupFolderId != null -> folderCloseTick++
                 manageFolderAppsId != null -> manageFolderAppsId = null
                 openFolderId != null -> openFolderId = null
                 addAppSheetOpen -> addAppSheetOpen = false
@@ -731,13 +740,13 @@ fun HomeCanvas(
                                     isEditMode = isEditMode,
                                     isSelected = isBlockSelected,
                                     appCatalog = appCatalog,
-                                    onClick = { openFolderId = block.id },
+                                    onClick = { popupFolderId = block.id },
                                     onLongClick = {
                                         isEditMode = true
                                         selectedBlockId = block.id
                                     },
                                     onSelectInEdit = { selectedBlockId = block.id },
-                                    modifier = animateMod,
+                                    modifier = animateMod.onGloballyPositioned { folderBounds[block.id] = it.boundsInRoot() },
                                 )
                             }
 
@@ -1062,6 +1071,36 @@ fun HomeCanvas(
                         }
                     }
                 }
+            }
+        }
+        // 文件夹弹窗：放在主 Box 的最后，叠在所有内容之上
+        popupFolderId?.let { folderId ->
+            val popupFolder = foldersList.firstOrNull { it.id == folderId }
+            if (popupFolder == null) {
+                LaunchedEffect(folderId) { popupFolderId = null }
+            } else {
+                FolderPopup(
+                    folder = popupFolder,
+                    appsByKey = appsByKey,
+                    anchor = folderBounds[folderId]?.translate(-rootOrigin),
+                    iconStyle = settings.iconStyle,
+                    showLabels = settings.showLabels,
+                    appCatalog = appCatalog,
+                    closeSignal = folderCloseTick + homePressTick,
+                    onDismiss = { popupFolderId = null },
+                    onEdit = {
+                        popupFolderId = null
+                        openFolderId = folderId
+                    },
+                    onLaunchApp = { app ->
+                        popupFolderId = null
+                        onLaunchApp(app, null)
+                    },
+                    onLongPressApp = { app ->
+                        actionTargetFromDrawer = false
+                        actionTargetApp = app
+                    },
+                )
             }
         }
     }
