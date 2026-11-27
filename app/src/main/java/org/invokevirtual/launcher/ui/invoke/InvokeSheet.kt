@@ -215,7 +215,7 @@ internal fun InvokeSheetContent(
             emptyList()
         }
     }
-    val cardAlpha = (1f - drawerTransparency.coerceIn(0f, 1f) * 0.65f).coerceIn(0.35f, 1f)
+        val cardAlpha = (1f - drawerTransparency.coerceIn(0f, 1f) * 0.65f).coerceIn(0.35f, 1f)
     val context = LocalContext.current
     val inPreview = LocalInspectionMode.current
     val haptic = LocalHapticFeedback.current
@@ -231,7 +231,17 @@ internal fun InvokeSheetContent(
         }
     }
 
-    // 👇 新增：按首字母对 Shortcuts 进行分组
+    // 👇 1. 补回缺失的 Pinned 变量
+    val showPinnedSectionInBrowse = !uiState.isSearching &&
+            uiState.activeFilter == InvokeFilter.ALL &&
+            uiState.pinnedDrawerApps.isNotEmpty()
+    val browsePinnedItemCount = if (showPinnedSectionInBrowse) {
+        1 + uiState.pinnedDrawerApps.size
+    } else {
+        0
+    }
+
+    // 👇 2. 分组 Shortcuts
     val shortcutsByLetter = remember(allShortcuts) {
         allShortcuts.groupBy { shortcut ->
             val c = shortcut.label.firstOrNull()?.uppercaseChar()
@@ -239,14 +249,14 @@ internal fun InvokeSheetContent(
         }
     }
 
-    // 👇 新增：合并 App 和 Shortcut 的字母，去重并排序
+    // 👇 3. 合并字母并排序
     val allLetters = remember(uiState.sections, shortcutsByLetter) {
         (uiState.sections.map { it.letter } + shortcutsByLetter.keys).distinct().sortedWith(
             compareBy({ it != '#' }, { it })
         )
     }
 
-    // 👇 修改：重新计算字母导航栏的跳转索引
+    // 👇 4. 计算字母导航栏跳转索引
     val sectionStartIndices = remember(
         allLetters,
         uiState.sections,
@@ -266,7 +276,6 @@ internal fun InvokeSheetContent(
         }
     }
     
-    // 👇 修改：过滤出实际有内容的字母
     val scrubberLetters = remember(allLetters, uiState.sections, shortcutsByLetter) {
         allLetters.filter { letter ->
             val appCount = uiState.sections.find { it.letter == letter }?.apps?.size ?: 0
@@ -274,6 +283,7 @@ internal fun InvokeSheetContent(
             appCount > 0 || shortcutCount > 0
         }
     }
+    // ... 剩下的 isPinnedFilterBrowse、showScrubber 等代码保持不变 ...
     val isPinnedFilterBrowse = !uiState.isSearching && uiState.activeFilter == InvokeFilter.PINNED
     val showScrubber = !uiState.isSearching && !isPinnedFilterBrowse && scrubberLetters.size >= 3
 
