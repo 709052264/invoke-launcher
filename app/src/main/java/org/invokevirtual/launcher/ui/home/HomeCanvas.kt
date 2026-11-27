@@ -177,6 +177,7 @@ fun HomeCanvas(
     onInvokeSelectFilter: (InvokeFilter) -> Unit = {},
     onTogglePrivateSpace: (Boolean) -> Unit = {},
     onTogglePinInDrawer: (AppKey) -> Unit = {},
+    onHidePwa: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -1090,11 +1091,7 @@ fun HomeCanvas(
             },
             onTogglePrivateSpace = onTogglePrivateSpace,
             hiddenPwaIds = settings.hiddenPwaIds,
-            onHidePwa = { id ->
-                scope.launch {
-                    settingsStore.setHiddenPwaIds(settings.hiddenPwaIds + id)
-                }
-            }
+            onHidePwa = onHidePwa,
         )
     }
 

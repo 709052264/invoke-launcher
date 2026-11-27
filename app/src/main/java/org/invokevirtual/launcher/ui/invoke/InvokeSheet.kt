@@ -168,7 +168,6 @@ fun InvokeSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = sheetAlpha),
         contentColor = MaterialTheme.colorScheme.onSurface,
         scrimColor = baseScrimColor.copy(alpha = baseScrimColor.alpha * (1f - clampedTransparency)),
-        onDismissRequest = onDismiss,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
     ) {
         InvokeSheetContent(
@@ -179,7 +178,8 @@ fun InvokeSheet(
             bottomSearchBar = bottomSearchBar,
             appCatalog = appCatalog,
             onQueryChange = onQueryChange,
-            hiddenPwaIds = hiddenPwaIds, // 👈 传给 Content
+            hiddenPwaIds = hiddenPwaIds,
+            onHidePwa = onHidePwa,
             onClearQuery = onClearQuery,
             onSelectFilter = onSelectFilter,
             onLaunchApp = onLaunchApp,
@@ -226,14 +226,16 @@ internal fun InvokeSheetContent(
     var pwaRefreshKey by remember { mutableIntStateOf(0) }
     var shortcutToRemove by remember { mutableStateOf<AppShortcutItem?>(null) }
 
-    val allShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog, pwaRefreshKey) {
+    val loadedShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog, pwaRefreshKey) {
         value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
-            withContext(Dispatchers.Default) {
-                appCatalog.loadPwaShortcuts().filter { it.id !in hiddenPwaIds } // 👈 这里过滤掉本地隐藏的
-            }
+            withContext(Dispatchers.Default) { appCatalog.loadPwaShortcuts() }
         } else {
             emptyList()
         }
+    }
+    // 隐藏列表一变就立即重新过滤，不依赖设置异步保存完成的时机
+    val allShortcuts = remember(loadedShortcuts, hiddenPwaIds) {
+        loadedShortcuts.filter { it.id !in hiddenPwaIds }
     }
 
     LaunchedEffect(autoFocusSearch) {
