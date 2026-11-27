@@ -417,12 +417,26 @@ class AppCatalog(private val context: Context) {
     }
 
     /** 解除固定快捷方式（将其从抽屉移除） */
-    fun unpinShortcuts(packageName: String, shortcutIds: List<String>, userSerial: Long) {
+    fun unpinShortcut(packageName: String, shortcutId: String, userSerial: Long) {
         val service = launcherApps ?: return
         if (!hasShortcutPermission()) return
         val handle = userManager?.getUserForSerialNumber(userSerial) ?: Process.myUserHandle()
+        
         runCatching {
-            service.unpinShortcuts(packageName, shortcutIds, handle)
+            // 1. 获取该包名下当前所有的固定快捷方式
+            val query = LauncherApps.ShortcutQuery().apply {
+                setPackage(packageName)
+                setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
+            }
+            val pinnedShortcuts = service.getShortcuts(query, handle).orEmpty()
+            
+            // 2. 过滤掉想要删除的那个 ID
+            val remainingIds = pinnedShortcuts
+                .filter { it.id != shortcutId }
+                .map { it.id }
+            
+            // 3. 重新 pin 剩下的列表。如果为空，系统会自动解除所有固定
+            service.pinShortcuts(packageName, remainingIds, handle)
         }
     }
 
