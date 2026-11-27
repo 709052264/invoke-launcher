@@ -137,7 +137,8 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 @Composable
 fun InvokeSheet(
-    hiddenPwaIds: Set<String> = emptySet(), // 👈 加在这里
+    hiddenPwaIds: Set<String> = emptySet(),
+    onHidePwa: (String) -> Unit = {},
     uiState: InvokeUiState,
     autoFocusSearch: Boolean,
     iconStyle: IconStyle,
@@ -195,7 +196,8 @@ fun InvokeSheet(
 
 @Composable
 internal fun InvokeSheetContent(
-    hiddenPwaIds: Set<String> = emptySet(), // 👈 加在这里
+    hiddenPwaIds: Set<String> = emptySet(),
+    onHidePwa: (String) -> Unit = {},
     uiState: InvokeUiState,
     autoFocusSearch: Boolean,
     iconStyle: IconStyle,
@@ -226,7 +228,7 @@ internal fun InvokeSheetContent(
     val allShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog, pwaRefreshKey) {
         value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
             withContext(Dispatchers.Default) {
-                appCatalog.loadPwaShortcuts().filter { it.id !in hiddenPwaIds } // 👈 过滤掉被隐藏的
+                appCatalog.loadPwaShortcuts().filter { it.id !in hiddenPwaIds } // 👈 这里过滤掉本地隐藏的
             }
         } else {
             emptyList()
@@ -599,9 +601,9 @@ internal fun InvokeSheetContent(
             confirmButton = {
                 androidx.compose.material3.TextButton(
                     onClick = {
-                        // 👇 注意这里方法名和参数变了
+                        onHidePwa(sc.id) // 👈 调用回调隐藏，不再走系统 API
                         shortcutToRemove = null
-                        pwaRefreshKey++ // 触发数据刷新
+                        pwaRefreshKey++ // 触发 UI 刷新
                     }
                 ) {
                     Text("Remove", color = MaterialTheme.colorScheme.error)
