@@ -8,70 +8,82 @@ def sub_once(text, old, new, what):
     return text.replace(old, new)
 
 
-# ---------- InvokeSheet.kt ----------
-p = BASE / "ui/invoke/InvokeSheet.kt"
+# ---------- MainActivity.kt ----------
+p = BASE / "MainActivity.kt"
 t = p.read_text(encoding="utf-8")
 
-# 1) ModalBottomSheet 里重复的 onDismissRequest
-dup = "        onDismissRequest = onDismiss,\n"
-assert t.count(dup) == 2, f"重复的 onDismissRequest: 期望 2 处，实际 {t.count(dup)}"
-first = t.index(dup)
-second = t.index(dup, first + 1)
-t = t[:second] + t[second + len(dup):]
-
-# 2) 把 onHidePwa 传给 InvokeSheetContent
 t = sub_once(
     t,
-    "            hiddenPwaIds = hiddenPwaIds, // 👈 传给 Content\n",
-    "            hiddenPwaIds = hiddenPwaIds,\n            onHidePwa = onHidePwa,\n",
-    "forward onHidePwa",
+    "import androidx.compose.runtime.mutableStateOf\n",
+    "import androidx.compose.runtime.mutableIntStateOf\nimport androidx.compose.runtime.mutableStateOf\n",
+    "import mutableIntStateOf",
 )
 
-# 3) 先加载全部 PWA 快捷方式，再按隐藏列表实时过滤
-old_ps = """    val allShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog, pwaRefreshKey) {
-        value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
-            withContext(Dispatchers.Default) {
-                appCatalog.loadPwaShortcuts().filter { it.id !in hiddenPwaIds } // 👈 这里过滤掉本地隐藏的
-            }
-        } else {
-            emptyList()
-        }
-    }
-"""
-new_ps = """    val loadedShortcuts by produceState<List<AppShortcutItem>>(initialValue = emptyList(), appCatalog, pwaRefreshKey) {
-        value = if (appCatalog != null && appCatalog.hasShortcutPermission()) {
-            withContext(Dispatchers.Default) { appCatalog.loadPwaShortcuts() }
-        } else {
-            emptyList()
-        }
-    }
-    // 隐藏列表一变就立即重新过滤，不依赖设置异步保存完成的时机
-    val allShortcuts = remember(loadedShortcuts, hiddenPwaIds) {
-        loadedShortcuts.filter { it.id !in hiddenPwaIds }
-    }
-"""
-t = sub_once(t, old_ps, new_ps, "produceState")
+field = "    private var pendingPinRequest by mutableStateOf<LauncherApps.PinItemRequest?>(null)\n"
+t = sub_once(
+    t,
+    field,
+    field
+    + "\n    // 每次收到系统 Home 事件（上滑回桌面 / Home 键）就 +1，HomeCanvas 据此关闭抽屉\n"
+    + "    private var homePressTick by mutableIntStateOf(0)\n",
+    "homePressTick field",
+)
+
+t = sub_once(
+    t,
+    "        setIntent(intent)\n        extractPinItemRequest(intent)\n",
+    "        setIntent(intent)\n        extractPinItemRequest(intent)\n"
+    "        if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {\n"
+    "            homePressTick++\n"
+    "        }\n",
+    "onNewIntent",
+)
+
+call = (
+    "                        onTogglePinInDrawer = { appKey ->\n"
+    "                            scope.launch { container.settingsStore.togglePinnedDrawerApp(appKey) }\n"
+    "                        },\n"
+)
+t = sub_once(
+    t,
+    call,
+    call
+    + "                        onHidePwa = { id ->\n"
+    + "                            scope.launch {\n"
+    + "                                container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds + id)\n"
+    + "                            }\n"
+    + "                        },\n"
+    + "                        homePressTick = homePressTick,\n",
+    "HomeCanvas call",
+)
 p.write_text(t, encoding="utf-8")
 
 # ---------- HomeCanvas.kt ----------
 p = BASE / "ui/home/HomeCanvas.kt"
 t = p.read_text(encoding="utf-8")
 
-# 4) HomeCanvas 新增参数
 t = sub_once(
     t,
-    "    onTogglePinInDrawer: (AppKey) -> Unit = {},\n) {\n    val context = LocalContext.current",
-    "    onTogglePinInDrawer: (AppKey) -> Unit = {},\n    onHidePwa: (String) -> Unit = {},\n) {\n    val context = LocalContext.current",
+    "    onTogglePinInDrawer: (AppKey) -> Unit = {},\n",
+    "    onTogglePinInDrawer: (AppKey) -> Unit = {},\n    homePressTick: Int = 0,\n",
     "HomeCanvas param",
 )
 
-# 5) 用参数替换找不到 scope / settingsStore 的 lambda
-old_cb = """            onHidePwa = { id ->
-                scope.launch {
-                    settingsStore.setHiddenPwaIds(settings.hiddenPwaIds + id)
-                }
-            }
-"""
-t = sub_once(t, old_cb, "            onHidePwa = onHidePwa,\n", "HomeCanvas callback")
+close = (
+    "    val closeInvokeSheet: () -> Unit = {\n"
+    "        invokeSheetOpen = false\n"
+    "        onInvokeClearQuery()\n"
+    "    }\n"
+)
+t = sub_once(
+    t,
+    close,
+    close
+    + "\n    // 系统 Home 手势（上滑回桌面）：MainActivity.onNewIntent 会递增 homePressTick\n"
+    + "    LaunchedEffect(homePressTick) {\n"
+    + "        if (homePressTick > 0 && invokeSheetOpen) closeInvokeSheet()\n"
+    + "    }\n",
+    "close on home",
+)
 p.write_text(t, encoding="utf-8")
 print("OK")
