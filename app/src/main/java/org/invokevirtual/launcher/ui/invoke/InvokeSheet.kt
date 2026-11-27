@@ -168,6 +168,7 @@ fun InvokeSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = sheetAlpha),
         contentColor = MaterialTheme.colorScheme.onSurface,
         scrimColor = baseScrimColor.copy(alpha = baseScrimColor.alpha * (1f - clampedTransparency)),
+        onDismissRequest = onDismiss,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
     ) {
         InvokeSheetContent(
