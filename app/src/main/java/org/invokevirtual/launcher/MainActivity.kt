@@ -259,6 +259,17 @@ class MainActivity : ComponentActivity() {
                         scope.launch { container.settingsStore.setBadgeStyle(style) }
                     },
                     onRequestSetDefaultLauncher = onRequestSetDefaultLauncher,
+                    // 👇 新增这两个：
+                    onUnhideApp = { appKey ->
+                        scope.launch {
+                            container.settingsStore.setHiddenAppKeys(settings.hiddenAppKeys - appKey)
+                        }
+                    },
+                    onUnhidePwa = { id ->
+                        scope.launch {
+                            container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds - id)
+                        }
+                    }
                 )
             }
 
