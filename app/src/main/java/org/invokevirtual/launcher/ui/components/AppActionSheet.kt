@@ -140,7 +140,7 @@ fun AppActionSheet(
             },
             onHideApp = {
                 onDismiss()
-                onHideApp()
+                onHideApp: (AppKey)
             },
         )
     }
