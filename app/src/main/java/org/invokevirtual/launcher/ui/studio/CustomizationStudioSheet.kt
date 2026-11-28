@@ -146,6 +146,8 @@ data class StudioActions(
     val onToggleDoubleTapToSleep: (Boolean) -> Unit = {},
     val onSelectBadgeStyle: (BadgeStyle) -> Unit = {},
     val onRequestSetDefaultLauncher: () -> Unit = {},
+    val onUnhideApp: (AppKey) -> Unit = {},
+    val onUnhidePwa: (String) -> Unit = {},
 )
 
 @Composable
@@ -188,6 +190,7 @@ internal fun CustomizationStudioContent(
     appCatalog: AppCatalog? = null,
 ) {
     val context = LocalContext.current
+    var showHiddenAppsSheet by remember { mutableStateOf(false) }
     val inPreview = LocalInspectionMode.current
     val haptic = LocalHapticFeedback.current
     var showSeedPicker by remember { mutableStateOf(settings.customSeedArgb != null) }
@@ -965,6 +968,11 @@ internal fun CustomizationStudioContent(
                 StudioSection(title = "App Drawer") {
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         StudioSwitchRow(
+                            title = "Hidden Apps",
+                            subtitle = "${settings.hiddenAppKeys.size + settings.hiddenPwaIds.size} apps hidden",
+                            checked = false,
+                            shape = InvokeShapes.segmentedItemShape(0, 4), // 调整 rowCount 视情况而定
+                            onCheckedChange = { showHiddenAppsSheet = true }, 
                             title = "Bottom Search Bar",
                             subtitle = "Place search bar at bottom with results growing upward",
                             checked = settings.bottomSearchBar,
