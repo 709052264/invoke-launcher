@@ -1151,8 +1151,6 @@ internal fun CustomizationStudioContent(
             }
         }
     }
-
-    dockPickerSlotIndex?.let { slotIndex ->
         // 👇 修复：把它放在外面
     if (showHiddenAppsSheet) {
         HiddenAppsSheet(
