@@ -596,6 +596,28 @@ class MainActivity : ComponentActivity() {
                                 container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds + id)
                             }
                         },
+                        // 👇👇👇 新增的两段 👇👇👇
+                        onHideApp = { appKey ->
+                            scope.launch {
+                                container.settingsStore.setHiddenAppKeys(settings.hiddenAppKeys + appKey)
+                            }
+                        },
+                        onRemovePwa = { sc ->
+                            scope.launch {
+                                // 1. 从系统解绑，彻底删除快捷方式
+                                container.appCatalog.unpinShortcut(sc.packageName, sc.shortcutId, sc.userSerial)
+                                // 2. 从隐藏列表中剔除（避免以后重新安装时被隐藏）
+                                container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds - sc.id)
+                                // 3. 从桌面移除（直接调用 HomeCanvas 提供的 canvasActions）
+                                canvasActions.onRemoveShortcut(
+                                    sc.packageName,
+                                    sc.shortcutId,
+                                    sc.userSerial,
+                                    settings.homeCanvas.blocks
+                                )
+                            }
+                        },
+                        // 👆👆👆 新增的两段 👆👆👆
                         homePressTick = homePressTick,
                     )
 
