@@ -139,8 +139,8 @@ fun AppActionSheet(
                 onUninstall()
             },
             onHideApp = {
-                onHideApp(appKey) // 👈 执行隐藏逻辑
                 onDismiss()       // 👈 关键：加上这句来关闭当前弹窗
+                onHideApp(appKey) // 👈 执行隐藏逻辑
             },
         )
     }
