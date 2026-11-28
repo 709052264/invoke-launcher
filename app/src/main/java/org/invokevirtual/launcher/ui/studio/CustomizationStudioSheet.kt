@@ -967,20 +967,54 @@ internal fun CustomizationStudioContent(
                 val percent = (transparencyDraft * 100f).toInt().coerceIn(0, 100)
                 StudioSection(title = "App Drawer") {
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        
+                        // 👇 1. 新增：Hidden Apps 入口（使用普通的 Surface，避免和 Switch 参数冲突）
+                        Surface(
+                            shape = InvokeShapes.segmentedItemShape(0, 4),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(InvokeShapes.segmentedItemShape(0, 4))
+                                .clickable { showHiddenAppsSheet = true },
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Hidden Apps",
+                                        style = MaterialTheme.typography.titleSmallEmphasized,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Text(
+                                        text = "${settings.hiddenAppKeys.size + settings.hiddenPwaIds.size} apps hidden",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Icon(
+                                    imageVector = InvokeIcons.OpenInNew, // 或者换成向右的箭头图标
+                                    contentDescription = "Manage hidden apps",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        // 👇 2. 修复：原本的 Bottom Search Bar
                         StudioSwitchRow(
-                            title = "Hidden Apps",
-                            subtitle = "${settings.hiddenAppKeys.size + settings.hiddenPwaIds.size} apps hidden",
-                            checked = false,
-                            shape = InvokeShapes.segmentedItemShape(0, 4), // 调整 rowCount 视情况而定
-                            onCheckedChange = { showHiddenAppsSheet = true }, 
                             title = "Bottom Search Bar",
                             subtitle = "Place search bar at bottom with results growing upward",
                             checked = settings.bottomSearchBar,
-                            shape = InvokeShapes.segmentedItemShape(0, 3),
+                            shape = InvokeShapes.segmentedItemShape(1, 4), // 索引改为 1
                             onCheckedChange = actions.onToggleBottomSearchBar,
                         )
+
+                        // 👇 3. 原本的 Drawer Transparency
                         Surface(
-                            shape = InvokeShapes.segmentedItemShape(2, 3),
+                            shape = InvokeShapes.segmentedItemShape(2, 4), // 索引改为 2，并补齐为一个组件
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -1056,7 +1090,6 @@ internal fun CustomizationStudioContent(
                     }
                 }
             }
-
             item(key = "theme_oled") {
                 StudioSection(title = "Theme & OLED") {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1120,17 +1153,21 @@ internal fun CustomizationStudioContent(
     }
 
     dockPickerSlotIndex?.let { slotIndex ->
-        if (showHiddenAppsSheet) {
-            HiddenAppsSheet(
-                installedApps = installedApps,
-                hiddenAppKeys = settings.hiddenAppKeys,
-                hiddenPwaIds = settings.hiddenPwaIds,
-                appCatalog = appCatalog,
-                onUnhideApp = actions.onUnhideApp,
-                onUnhidePwa = actions.onUnhidePwa,
-                onDismiss = { showHiddenAppsSheet = false }
-            )
-        }
+        // 👇 修复：把它放在外面
+    if (showHiddenAppsSheet) {
+        HiddenAppsSheet(
+            installedApps = installedApps,
+            hiddenAppKeys = settings.hiddenAppKeys,
+            hiddenPwaIds = settings.hiddenPwaIds,
+            appCatalog = appCatalog,
+            onUnhideApp = actions.onUnhideApp,
+            onUnhidePwa = actions.onUnhidePwa,
+            onDismiss = { showHiddenAppsSheet = false }
+        )
+    }
+
+    // 👇 原本的 Dock 选择器保持独立
+    dockPickerSlotIndex?.let { slotIndex ->
         DockAppPickerDialog(
             installedApps = installedApps,
             appCatalog = appCatalog,
