@@ -70,7 +70,8 @@ fun AppActionSheet(
     onTogglePinInDrawer: (() -> Unit)? = null,
     onLaunchShortcut: (AppShortcutItem) -> Unit,
     onOpenAppInfo: () -> Unit,
-    onUninstall: () -> Unit,
+    onHideApp: (AppKey) -> Unit = {}, // 👈 新增
+    onUninstall: () -> Unit,    
 ) {
     val sheetState = rememberBottomSheetState(
         initialValue = SheetValue.Hidden,
@@ -162,6 +163,7 @@ internal fun AppActionSheetContent(
     onTogglePinInDrawer: (() -> Unit)? = null,
     onLaunchShortcut: (AppShortcutItem) -> Unit,
     onOpenAppInfo: () -> Unit,
+    onHideApp: (AppKey) -> Unit = {}, // 👈 新增
     onUninstall: () -> Unit,
 ) {
     Column(
@@ -346,6 +348,16 @@ internal fun AppActionSheetContent(
                     onClick = onOpenAppInfo,
                 ),
             )
+            if (isFromDrawer && appKey != null) {
+                add(
+                    SheetActionRow(
+                        label = "Hide from All apps",
+                        icon = InvokeIcons.Close,
+                        tint = MaterialTheme.colorScheme.error,
+                        onClick = { onHideApp(appKey) },
+                    ),
+                )
+            }
             if (canUninstall) {
                 add(
                     SheetActionRow(
