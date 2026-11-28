@@ -141,6 +141,8 @@ fun InvokeSheet(
     onHidePwa: (String) -> Unit = {},
     hiddenAppKeys: Set<AppKey> = emptySet(),         // 👈 新增
     onRemovePwa: (AppShortcutItem) -> Unit = {},     // 👈 新增
+    hiddenAppKeys: Set<AppKey> = emptySet(),         // 👈 确保加了这行
+    onRemovePwa: (AppShortcutItem) -> Unit = {},     // 👈 确保加了这行
     uiState: InvokeUiState,
     autoFocusSearch: Boolean,
     iconStyle: IconStyle,
@@ -213,6 +215,8 @@ fun InvokeSheet(
 internal fun InvokeSheetContent(
     hiddenPwaIds: Set<String> = emptySet(),
     onHidePwa: (String) -> Unit = {},
+    hiddenAppKeys: Set<AppKey> = emptySet(),         // 👈 确保加了这行
+    onRemovePwa: (AppShortcutItem) -> Unit = {},     // 👈 确保加了这行
     uiState: InvokeUiState,
     autoFocusSearch: Boolean,
     iconStyle: IconStyle,
