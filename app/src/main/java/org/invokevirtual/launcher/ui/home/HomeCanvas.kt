@@ -180,6 +180,8 @@ fun HomeCanvas(
     onTogglePinInDrawer: (AppKey) -> Unit = {},
     homePressTick: Int = 0,
     onHidePwa: (String) -> Unit = {},
+    onHideApp: (AppKey) -> Unit = {},                // 👈 新增
+    onRemovePwa: (AppShortcutItem) -> Unit = {},     // 👈 新增
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -1133,6 +1135,8 @@ fun HomeCanvas(
             onTogglePrivateSpace = onTogglePrivateSpace,
             hiddenPwaIds = settings.hiddenPwaIds,
             onHidePwa = onHidePwa,
+            hiddenAppKeys = settings.hiddenAppKeys, // 👈 新增
+            onRemovePwa = onRemovePwa,              // 👈 新增
         )
     }
 
@@ -1390,6 +1394,7 @@ fun HomeCanvas(
                 closeInvokeSheet()
                 appCatalog?.uninstallApp(targetApp)
             },
+            onHideApp = onHideApp, // 👈 新增
         )
     }
 }
