@@ -260,8 +260,8 @@ class SettingsStore(private val context: Context) {
                 ?.split(",")
                 ?.filter { it.isNotBlank() }
                 ?.toSet() 
-                ?: emptySet()
-            // 👇 新增这段
+                ?: emptySet(),
+            // 👇 确保复制粘贴完整，注意 prefs[Keys.HIDDEN_APP_KEYS] 的写法
             hiddenAppKeys = prefs[Keys.HIDDEN_APP_KEYS]
                 ?.split(",")
                 ?.filter { it.isNotBlank() }
