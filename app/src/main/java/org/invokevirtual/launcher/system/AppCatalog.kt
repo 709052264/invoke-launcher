@@ -402,6 +402,22 @@ class AppCatalog(private val context: Context) {
     fun getUserSerial(userHandle: UserHandle): Long =
         userManager?.getSerialNumberForUser(userHandle) ?: 0L
 
+    /** 解除固定快捷方式（将其从系统移除） */
+    fun unpinShortcut(packageName: String, shortcutId: String, userSerial: Long) {
+        val service = launcherApps ?: return
+        if (!hasShortcutPermission()) return
+        val handle = userManager?.getUserForSerialNumber(userSerial) ?: Process.myUserHandle()
+        
+        runCatching {
+            val query = LauncherApps.ShortcutQuery().apply {
+                setPackage(packageName)
+                setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
+            }
+            val pinnedShortcuts = service.getShortcuts(query, handle).orEmpty()
+            val remainingIds = pinnedShortcuts.filter { it.id != shortcutId }.map { it.id }
+            service.pinShortcuts(packageName, remainingIds, handle)
+        }
+    }
     /** Keeps Android's system pinned-shortcut registry synchronized with pinned Home Canvas tiles. */
     fun syncPinnedShortcuts(
         packageName: String,
