@@ -573,21 +573,10 @@ class MainActivity : ComponentActivity() {
                         installedApps = installedApps,
                         canvasActions = canvasActions,
                         invokeUiState = invokeUiState,
-                        studioActions = StudioActions(
-                            // ⚠️⚠️ 注意：如果你之前在这括号里有其他的设置回调（比如切换时钟、换壁纸等），
-                            // 请把那些代码也补在这里，千万不要删掉，否则其他设置会失效！
-                            // 下面只加了我们新增的两个：
-                            onUnhideApp = { appKey ->
-                                scope.launch {
-                                    container.settingsStore.setHiddenAppKeys(settings.hiddenAppKeys - appKey)
-                                }
-                            },
-                            onUnhidePwa = { id ->
-                                scope.launch {
-                                    container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds - id)
-                                }
-                            }
-                        ), // 👈 就少了一个逗号，我加在这里了！
+                        
+                        // 👇 恢复原样，千万别内联写在这里了！
+                        studioActions = studioActions,
+                        
                         widgetHost = container.widgetHost,
                         appCatalog = container.appCatalog,
                         onSelectWorkspaceMode = { mode ->
@@ -621,7 +610,8 @@ class MainActivity : ComponentActivity() {
                                 container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds + id)
                             }
                         },
-                        // 👇👇👇 新增的两段 👇👇👇
+                        
+                        // 👇 新增的普通 App 隐藏和 PWA 移除：
                         onHideApp = { appKey ->
                             scope.launch {
                                 container.settingsStore.setHiddenAppKeys(settings.hiddenAppKeys + appKey)
@@ -629,17 +619,14 @@ class MainActivity : ComponentActivity() {
                         },
                         onRemovePwa = { sc ->
                             scope.launch {
-                                // 1. 从系统解绑，彻底删除快捷方式
                                 container.appCatalog.unpinShortcut(sc.packageName, sc.shortcutId, sc.userSerial)
-                                // 2. 从隐藏列表中剔除（避免以后重新安装时被隐藏）
                                 container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds - sc.id)
-                                // 👈 桌面图标的移除已经在 HomeCanvas.kt 内部处理了，这里不用再写
                             }
                         },
-                        // 👆👆👆 新增的两段 👆👆👆
+                        
                         homePressTick = homePressTick,
                     )
-
+                    
                     if (!isDefaultLauncher && !dismissedDefaultPrompt) {
                         SetDefaultLauncherDialog(
                             onDismiss = { dismissedDefaultPrompt = true },
