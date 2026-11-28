@@ -94,6 +94,9 @@ data class DockQuickAction(
     val onLongClick: () -> Unit = {},
 )
 
+/** 底部 dock 的固定高度：不再随图标数量变化 */
+private val DockHeight = 104.dp
+
 @Composable
 fun InvokeBottomDock(
     quickActions: List<DockQuickAction>,
@@ -125,40 +128,69 @@ fun InvokeBottomDock(
     ) {
         when (dockStyle) {
             DockStyle.TOOLBAR -> {
-                HorizontalFloatingToolbar(
-                    expanded = true,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter) // 强制底部居中
-                        .fillMaxWidth()                // 占满宽度
-                        .padding(horizontal = 16.dp)   // 左右留白（如果你桌面上的 Widget 左右也是 16dp，这样就能完美对齐）
-                        .padding(bottom = 12.dp),      // 底部留白
-                    colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-                        toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
-                        toolbarContentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 12.dp), // Dock 内部左右微调
-                ) {
-                    // 👇 新增：用一个 Row 包裹图标，并赋予 weight(1f) 让它占满剩余空间，并均匀分布
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
+                if (quickActions.isNotEmpty() || showModeButton) {
+                    // 图标 ≤2 个：dock 收窄成胶囊；≥3 个：铺满宽度。两种情况高度都固定。
+                    val compactDock = quickActions.size <= 2
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        shadowElevation = 6.dp,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 12.dp)
+                            .then(if (compactDock) Modifier else Modifier.fillMaxWidth())
+                            .height(DockHeight),
                     ) {
-                        quickActions.forEach { action ->
-                            DockActionSlotButton(
-                                action = action,
-                                iconStyle = iconStyle,
-                                appCatalog = appCatalog,
-                            )
+                        if (compactDock) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 28.dp),
+                                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                quickActions.forEach { action ->
+                                    DockActionSlotButton(
+                                        action = action,
+                                        iconStyle = iconStyle,
+                                        appCatalog = appCatalog,
+                                    )
+                                }
+                                if (showModeButton) {
+                                    InvokeSearchPillButton(
+                                        searchCd = searchCd,
+                                        onClick = onInvokeSearchClick,
+                                    )
+                                }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    quickActions.forEach { action ->
+                                        DockActionSlotButton(
+                                            action = action,
+                                            iconStyle = iconStyle,
+                                            appCatalog = appCatalog,
+                                        )
+                                    }
+                                }
+                                if (showModeButton) {
+                                    InvokeSearchPillButton(
+                                        searchCd = searchCd,
+                                        onClick = onInvokeSearchClick,
+                                    )
+                                }
+                            }
                         }
-                    }
-
-                    // 👇 搜索按钮（如果开启的话）会靠右显示
-                    if (showModeButton) {
-                        InvokeSearchPillButton(
-                            searchCd = searchCd,
-                            onClick = onInvokeSearchClick,
-                        )
                     }
                 }
             }
