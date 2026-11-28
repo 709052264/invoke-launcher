@@ -562,7 +562,19 @@ class MainActivity : ComponentActivity() {
                         installedApps = installedApps,
                         canvasActions = canvasActions,
                         invokeUiState = invokeUiState,
-                        studioActions = studioActions,
+                        studioActions = StudioActions(
+                        // ... 其他已有的 actions 保持不变
+                            onUnhideApp = { appKey ->
+                                scope.launch {
+                                    container.settingsStore.setHiddenAppKeys(settings.hiddenAppKeys - appKey)
+                                }
+                            },
+                            onUnhidePwa = { id ->
+                                scope.launch {
+                                    container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds - id)
+                                }
+                            }
+                        )
                         widgetHost = container.widgetHost,
                         appCatalog = container.appCatalog,
                         onSelectWorkspaceMode = { mode ->
