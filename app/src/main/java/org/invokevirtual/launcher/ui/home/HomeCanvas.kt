@@ -1398,7 +1398,11 @@ fun HomeCanvas(
                 closeInvokeSheet()
                 appCatalog?.uninstallApp(targetApp)
             },
-            onHideApp = onHideApp, // 👈 新增
+            onHideApp = { appKey ->
+                // 这里的逻辑是传给 MainActivity 处理的
+                onHideApp(appKey) 
+                // 注意：千万别在这里再次手动写 actionTargetApp = null，交给 onDismiss 处理即可
+            },
         )
     }
 }
