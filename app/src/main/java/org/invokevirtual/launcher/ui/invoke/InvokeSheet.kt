@@ -139,8 +139,6 @@ import kotlin.time.Duration.Companion.milliseconds
 fun InvokeSheet(
     hiddenPwaIds: Set<String> = emptySet(),
     onHidePwa: (String) -> Unit = {},
-    hiddenAppKeys: Set<AppKey> = emptySet(),         // 👈 新增
-    onRemovePwa: (AppShortcutItem) -> Unit = {},     // 👈 新增
     hiddenAppKeys: Set<AppKey> = emptySet(),         // 👈 确保加了这行
     onRemovePwa: (AppShortcutItem) -> Unit = {},     // 👈 确保加了这行
     uiState: InvokeUiState,
