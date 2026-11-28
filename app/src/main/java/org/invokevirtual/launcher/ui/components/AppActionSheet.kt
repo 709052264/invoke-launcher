@@ -355,7 +355,10 @@ internal fun AppActionSheetContent(
                         label = "Hide from All apps",
                         icon = InvokeIcons.Close,
                         tint = MaterialTheme.colorScheme.error,
-                        onClick = { onHideApp(appKey) },
+                        onClick = {
+                            onHideApp(appKey) // 👈 执行隐藏逻辑
+                            onDismiss()       // 👈 关键：加上这句来关闭当前弹窗
+                        },
                     ),
                 )
             }
