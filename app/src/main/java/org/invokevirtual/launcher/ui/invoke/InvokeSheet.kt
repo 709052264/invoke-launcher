@@ -139,6 +139,8 @@ import kotlin.time.Duration.Companion.milliseconds
 fun InvokeSheet(
     hiddenPwaIds: Set<String> = emptySet(),
     onHidePwa: (String) -> Unit = {},
+    hiddenAppKeys: Set<AppKey> = emptySet(),         // 👈 新增
+    onRemovePwa: (AppShortcutItem) -> Unit = {},     // 👈 新增
     uiState: InvokeUiState,
     autoFocusSearch: Boolean,
     iconStyle: IconStyle,
@@ -190,6 +192,8 @@ fun InvokeSheet(
             onQueryChange = onQueryChange,
             hiddenPwaIds = hiddenPwaIds,
             onHidePwa = onHidePwa,
+            hiddenAppKeys = hiddenAppKeys,  // 👈 传参
+            onRemovePwa = onRemovePwa,      // 👈 传参
             onClearQuery = onClearQuery,
             onSelectFilter = onSelectFilter,
             onLaunchApp = onLaunchApp,
@@ -502,7 +506,8 @@ internal fun InvokeSheetContent(
                         }
 
                         allLetters.forEach { letter ->
-                            val sectionApps = uiState.sections.find { it.letter == letter }?.apps ?: emptyList()
+                            val sectionApps = (uiState.sections.find { it.letter == letter }?.apps ?: emptyList())
+                                .filter { it.key !in hiddenAppKeys } // 👈 新增：过滤隐藏的普通 App
                             val sectionShortcuts = shortcutsByLetter[letter] ?: emptyList()
 
                             if (sectionApps.isNotEmpty() || sectionShortcuts.isNotEmpty()) {
@@ -609,22 +614,28 @@ internal fun InvokeSheetContent(
     shortcutToRemove?.let { sc ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { shortcutToRemove = null },
-            title = { Text("Remove Shortcut") },
-            text = { Text("Are you sure you want to remove \"${sc.label}\"?") },
+            title = { Text("Shortcut Options") },
+            text = { Text("What would you like to do with \"${sc.label}\"?") },
             confirmButton = {
                 androidx.compose.material3.TextButton(
                     onClick = {
-                        onHidePwa(sc.id) // 👈 调用回调隐藏，不再走系统 API
+                        onRemovePwa(sc) // 👈 彻底删除
                         shortcutToRemove = null
-                        pwaRefreshKey++ // 触发 UI 刷新
+                        pwaRefreshKey++
                     }
                 ) {
                     Text("Remove", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { shortcutToRemove = null }) {
-                    Text("Cancel")
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        onHidePwa(sc.id) // 👈 仅隐藏
+                        shortcutToRemove = null
+                        pwaRefreshKey++
+                    }
+                ) {
+                    Text("Hide")
                 }
             }
         )
