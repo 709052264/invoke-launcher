@@ -563,7 +563,9 @@ class MainActivity : ComponentActivity() {
                         canvasActions = canvasActions,
                         invokeUiState = invokeUiState,
                         studioActions = StudioActions(
-                        // ... 其他已有的 actions 保持不变
+                            // ⚠️⚠️ 注意：如果你之前在这括号里有其他的设置回调（比如切换时钟、换壁纸等），
+                            // 请把那些代码也补在这里，千万不要删掉，否则其他设置会失效！
+                            // 下面只加了我们新增的两个：
                             onUnhideApp = { appKey ->
                                 scope.launch {
                                     container.settingsStore.setHiddenAppKeys(settings.hiddenAppKeys - appKey)
@@ -574,7 +576,7 @@ class MainActivity : ComponentActivity() {
                                     container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds - id)
                                 }
                             }
-                        )
+                        ), // 👈 就少了一个逗号，我加在这里了！
                         widgetHost = container.widgetHost,
                         appCatalog = container.appCatalog,
                         onSelectWorkspaceMode = { mode ->
