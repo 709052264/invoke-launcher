@@ -138,6 +138,7 @@ fun AppActionSheet(
                 onDismiss()
                 onUninstall()
             },
+            onHideApp = onHideApp, // 👈 👈 就是在这里加上这一行
         )
     }
 }
