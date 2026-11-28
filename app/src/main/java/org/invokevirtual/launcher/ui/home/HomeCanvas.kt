@@ -1136,7 +1136,11 @@ fun HomeCanvas(
             hiddenPwaIds = settings.hiddenPwaIds,
             onHidePwa = onHidePwa,
             hiddenAppKeys = settings.hiddenAppKeys, // 👈 新增
-            onRemovePwa = onRemovePwa,              // 👈 新增
+            onRemovePwa = { sc ->
+                onRemovePwa(sc) // 调用外部的（只做系统解绑和隐藏）
+                // 👇 在这里直接移除桌面图标
+                canvasActions.onRemoveShortcut(sc.packageName, sc.shortcutId, sc.userSerial, effectiveBlocks)
+            },
         )
     }
 
