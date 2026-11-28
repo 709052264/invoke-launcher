@@ -1120,6 +1120,17 @@ internal fun CustomizationStudioContent(
     }
 
     dockPickerSlotIndex?.let { slotIndex ->
+        if (showHiddenAppsSheet) {
+            HiddenAppsSheet(
+                installedApps = installedApps,
+                hiddenAppKeys = settings.hiddenAppKeys,
+                hiddenPwaIds = settings.hiddenPwaIds,
+                appCatalog = appCatalog,
+                onUnhideApp = actions.onUnhideApp,
+                onUnhidePwa = actions.onUnhidePwa,
+                onDismiss = { showHiddenAppsSheet = false }
+            )
+        }
         DockAppPickerDialog(
             installedApps = installedApps,
             appCatalog = appCatalog,
