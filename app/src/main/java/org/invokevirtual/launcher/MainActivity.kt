@@ -608,13 +608,7 @@ class MainActivity : ComponentActivity() {
                                 container.appCatalog.unpinShortcut(sc.packageName, sc.shortcutId, sc.userSerial)
                                 // 2. 从隐藏列表中剔除（避免以后重新安装时被隐藏）
                                 container.settingsStore.setHiddenPwaIds(settings.hiddenPwaIds - sc.id)
-                                // 3. 从桌面移除（直接调用 HomeCanvas 提供的 canvasActions）
-                                canvasActions.onRemoveShortcut(
-                                    sc.packageName,
-                                    sc.shortcutId,
-                                    sc.userSerial,
-                                    settings.homeCanvas.blocks
-                                )
+                                // 👈 桌面图标的移除已经在 HomeCanvas.kt 内部处理了，这里不用再写
                             }
                         },
                         // 👆👆👆 新增的两段 👆👆👆
